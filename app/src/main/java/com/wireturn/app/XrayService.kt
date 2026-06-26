@@ -209,7 +209,15 @@ class XrayService : Service() {
 
             val isSocks5Core = runningClientConfig.kernelVariant == KernelVariant.OLCRTC || runningClientConfig.kernelVariant == KernelVariant.WEBDAV
 
-            val isConfigValid = if (isSocks5Core) {
+            // VLESS_ONLY: xray connects to the VLESS server directly and the profile
+            // kernel is parked (CoreService keeps it Suppressed). Mutually exclusive with
+            // dual-route, so !isDualRoute is part of the definition.
+            val isVlessOnly = isXrayVless && vlessConfig.vlessOnly && !vlessConfig.isDualRoute
+
+            val isConfigValid = if (isVlessOnly) {
+                // Pure VLESS path needs a valid link (no kernel/SOCKS fallback).
+                vlessConfig.isValid()
+            } else if (isSocks5Core) {
                 // For OLCRTC/WebDAV, VLESS/WG config is optional, unless DualRoute is enabled
                 if (isXrayVless && vlessConfig.isDualRoute) {
                     vlessConfig.isValid()
@@ -259,7 +267,10 @@ class XrayService : Service() {
                 cmdArgs.add(xraySettings.proxyPass)
             }
             
-            if (isSocks5Core) {
+            if (isVlessOnly) {
+                // VLESS_ONLY: no local upstream — xray dials the VLESS server itself.
+                // (The kernel SOCKS / -local-address would point at a parked binary.)
+            } else if (isSocks5Core) {
                 cmdArgs.add("-local-socks5")
                 val socksAddr = if (runningClientConfig.isSocksAuthEnabled && runningClientConfig.socksUser.isNotBlank()) {
                     "${runningClientConfig.socksUser}:${runningClientConfig.socksPass}@${runningClientConfig.socksAddr}"
@@ -279,7 +290,7 @@ class XrayService : Service() {
                 }
                 
                 val shouldAddLink = if (isSocks5Core) {
-                    vlessConfig.isDualRoute && vlessConfig.vlessLink.isNotBlank()
+                    (vlessConfig.isDualRoute || isVlessOnly) && vlessConfig.vlessLink.isNotBlank()
                 } else {
                     true
                 }

@@ -158,7 +158,11 @@ fun CoreToggleButton(
         coreState is CoreState.Stopping -> stringResource(R.string.stopping)
         coreState is CoreState.Connecting -> coreStatusText ?: stringResource(R.string.connecting)
         coreState is CoreState.Suppressed -> {
+            // Suppressed means the kernel is parked. In dual-route DirectRoute it's the
+            // direct VLESS path; when xray is Running the parked-kernel route (VLESS-only
+            // direct or dual-route local) is actually carrying traffic — show active.
             if (xrayState == XrayState.DirectRoute) stringResource(R.string.vless_direct_active)
+            else if (xrayState == XrayState.Running) stringResource(R.string.core_active)
             else stringResource(R.string.connecting)
         }
         coreState is CoreState.CaptchaRequired -> stringResource(R.string.core_captcha_required)

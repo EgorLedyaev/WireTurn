@@ -153,10 +153,13 @@ class CoreService : Service() {
 
         val isXrayVless = xrayConfig.protocol == com.wireturn.app.data.XrayConfiguration.VLESS
         val isDualRouteStart = xrayConfig.enabled && isXrayVless && vlessConfig.isDualRoute
+        // VLESS_ONLY: xray runs VLESS directly; park the kernel like dual-route so the
+        // kernel binary never launches (the mainSupervisor wake is guarded below).
+        val isVlessOnlyStart = xrayConfig.enabled && isXrayVless && vlessConfig.vlessOnly && !vlessConfig.isDualRoute
 
         NotificationHelper.cancelErrorNotification(this)
-        
-        if (isDualRouteStart) {
+
+        if (isDualRouteStart || isVlessOnlyStart) {
             // В режиме Dual-route стартуем в паузе, чтобы не запускать бинарник зря
             AppLogsState.addLog(getString(R.string.log_core_suppressed))
             CoreServiceState.setStatus(CoreStatus.Suppressed)
@@ -212,6 +215,9 @@ class CoreService : Service() {
                 // пока Xray еще не перезагружен с новыми настройками.
                 val effectiveVless = if (state != XrayState.Idle) (xraySession?.vless ?: vless) else vless
                 val isDualRoute = xray.enabled && isXrayVless && effectiveVless.isDualRoute
+                // VLESS_ONLY parks the kernel permanently while xray carries traffic; the
+                // generic "Dual-route disabled -> wake" branch below must NOT fire for it.
+                val isVlessOnly = xray.enabled && isXrayVless && effectiveVless.vlessOnly && !effectiveVless.isDualRoute
 
                 if (isDualRoute) {
                     when (state) {
@@ -234,6 +240,9 @@ class CoreService : Service() {
                         // маршрута обрабатывается в XrayService.handleDualRouteLog
                         else -> {}
                     }
+                } else if (isVlessOnly) {
+                    // VLESS-only: kernel stays parked; xray carries traffic directly.
+                    // Do NOT wake the binary (no kernel fallback in this mode).
                 } else if (CoreServiceState.status.value is CoreStatus.Suppressed) {
                     // Режим Dual-route был выключен — пробуждаем туннель немедленно
                     CoreServiceState.setStatus(CoreStatus.Connecting)
@@ -277,10 +286,12 @@ class CoreService : Service() {
                     if (binaryChanged) {
                         val xrayConfig = prefs.xrayConfigFlow.first()
                         val vlessConfig = prefs.vlessConfigFlow.first()
-                        val isDualRoute = xrayConfig.enabled &&
-                            xrayConfig.protocol == com.wireturn.app.data.XrayConfiguration.VLESS &&
-                            vlessConfig.isDualRoute
-                        if (isDualRoute && CoreServiceState.status.value !is CoreStatus.Idle) {
+                        val isXrayVless = xrayConfig.protocol == com.wireturn.app.data.XrayConfiguration.VLESS
+                        val isDualRoute = xrayConfig.enabled && isXrayVless && vlessConfig.isDualRoute
+                        // VLESS_ONLY keeps the kernel parked too — a binary-affecting config
+                        // change must re-park (Suppressed), not restart the parked kernel.
+                        val isVlessOnly = xrayConfig.enabled && isXrayVless && vlessConfig.vlessOnly && !vlessConfig.isDualRoute
+                        if ((isDualRoute || isVlessOnly) && CoreServiceState.status.value !is CoreStatus.Idle) {
                             AppLogsState.addLog(getString(R.string.log_core_dual_route_config_changed))
                             CoreServiceState.setStatus(CoreStatus.Suppressed)
                         } else {
@@ -1226,7 +1237,28 @@ class CoreService : Service() {
                     if (!prefs.restartOnNetworkChangeFlow.first()) return@launch
 
                     delay(2_000.milliseconds)
-                    if (!userStopped.get() && process.get() != null) {
+                    if (userStopped.get()) return@launch
+
+                    // Dual-route audit (Finding 2): the direct VLESS leg lives in
+                    // XrayService and is NOT covered by the kernel restart below. In
+                    // dual-route the kernel is usually parked (process == null), so a
+                    // network change would otherwise leave xray hung on a stale
+                    // interface. Bounce the xray leg; CoreService's xray supervisor
+                    // brings it straight back up against the fresh network.
+                    val netXray = prefs.xrayConfigFlow.first()
+                    val netVless = prefs.vlessConfigFlow.first()
+                    val directLegActive = netXray.enabled &&
+                        netXray.protocol == com.wireturn.app.data.XrayConfiguration.VLESS &&
+                        netVless.isDualRoute &&
+                        XrayServiceState.state.value != XrayState.Idle
+                    if (directLegActive) {
+                        AppLogsState.addLog(getString(R.string.log_xray_network_change_restart))
+                        withContext(Dispatchers.Main) {
+                            stopService(Intent(this@CoreService, XrayService::class.java))
+                        }
+                    }
+
+                    if (process.get() != null) {
                         AppLogsState.addLog(getString(R.string.log_core_network_change))
                         updateNotification(getString(R.string.notification_network_change))
                         restartCount = 0

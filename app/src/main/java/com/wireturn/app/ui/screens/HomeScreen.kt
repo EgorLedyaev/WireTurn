@@ -847,11 +847,13 @@ fun HomeScreen(
 
             // --- Xray & VPN Settings ---
             val isSettingsValid = if (isSocks5Core) {
-                // For OLCRTC/WebDAV, link is only required if DualRoute is enabled
-                if (activeXrayConfig.protocol == XrayConfiguration.VLESS && activeVlessConfig.isDualRoute) {
+                // VLESS-only and dual-route both require a valid link (pure VLESS path —
+                // no kernel/SOCKS fallback for vless-only); plain socks5 mode does not.
+                if (activeXrayConfig.protocol == XrayConfiguration.VLESS &&
+                    (activeVlessConfig.isDualRoute || activeVlessConfig.vlessOnly)) {
                     activeVlessConfig.isValid()
                 } else {
-                    true // WG or VLESS solo mode just uses SOCKS5 from core
+                    true // WG or VLESS solo (socks5) mode just uses SOCKS5 from core
                 }
             } else {
                 if (activeXrayConfig.protocol == XrayConfiguration.VLESS) activeVlessConfig.isValid() else activeWgConfig.isValid()
@@ -964,7 +966,16 @@ fun HomeScreen(
                     )
 
                     if (next && !xrayConfig.enabled) {
-                        showVpnWarning()
+                        if (isSocks5Core) {
+                            // olcrtc/webdav-only profile: auto-start a transparent xray
+                            // SOCKS bridge. xray with no -link bridges the parked-core
+                            // SOCKS to the TUN (HevVpnService is only started by
+                            // XrayService), giving a pure tunnel profile a system-wide
+                            // VPN. Off the dual-route path — no -link/-direct-address.
+                            viewModel.updateXrayConfig(xrayConfig.copy(enabled = true))
+                        } else {
+                            showVpnWarning()
+                        }
                     }
 
                     if (next) {

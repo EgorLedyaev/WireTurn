@@ -679,7 +679,10 @@ data class VlessConfig(
     @SerializedName("isDualRoute") val isDualRoute: Boolean = false,
     @SerializedName("directAddress") val directAddress: String = "",
     @SerializedName("hcInterval") val hcInterval: String = "30",
-    @SerializedName("mux") val mux: String = "0"
+    @SerializedName("mux") val mux: String = "0",
+    // VLESS_ONLY (Phase 3): run xray VLESS directly and park the profile kernel.
+    // Trailing param w/ default => back-compat (absent in old stored JSON => false).
+    @SerializedName("vlessOnly") val vlessOnly: Boolean = false
 ) {
     fun isValid(): Boolean = ValidatorUtils.isValidVlessLink(vlessLink)
     fun sanitize(): VlessConfig = copy(

@@ -142,12 +142,13 @@ fun XraySetupScreen(
     var vlessDirectAddress by remember(initialVlessConfig) { mutableStateOf(initialVlessConfig.directAddress) }
     var vlessHcInterval by remember(initialVlessConfig) { mutableStateOf(initialVlessConfig.hcInterval) }
     var vlessMux by remember(initialVlessConfig) { mutableStateOf(initialVlessConfig.mux) }
+    var vlessOnly by remember(initialVlessConfig) { mutableStateOf(initialVlessConfig.vlessOnly) }
 
     val currentWg = remember(privateKey, address, mtu, publicKey, endpoint, persistentKeepalive) {
         WgConfig(privateKey, address, mtu, publicKey, endpoint, persistentKeepalive)
     }
-    val currentVless = remember(vlessLink, vlessIsDualRoute, vlessDirectAddress, vlessHcInterval, vlessMux, initialVlessConfig) {
-        VlessConfig(vlessLink, vlessIsDualRoute, vlessDirectAddress, vlessHcInterval, vlessMux)
+    val currentVless = remember(vlessLink, vlessIsDualRoute, vlessDirectAddress, vlessHcInterval, vlessMux, vlessOnly, initialVlessConfig) {
+        VlessConfig(vlessLink, vlessIsDualRoute, vlessDirectAddress, vlessHcInterval, vlessMux, vlessOnly)
     }
 
     val isModified by remember(xrayConfiguration, currentWg, currentVless, initialXrayConfig, initialWgConfig, initialVlessConfig, canChangeProtocol) {
@@ -233,7 +234,7 @@ fun XraySetupScreen(
                     HapticUtil.perform(context, HapticUtil.Pattern.CLICK)
                     showExitDialog.value = false
                     val wg = WgConfig(privateKey, address, mtu, publicKey, endpoint, persistentKeepalive)
-                    val vless = VlessConfig(vlessLink, vlessIsDualRoute, vlessDirectAddress, vlessHcInterval, vlessMux)
+                    val vless = VlessConfig(vlessLink, vlessIsDualRoute, vlessDirectAddress, vlessHcInterval, vlessMux, vlessOnly)
                     onSave(xrayConfiguration, wg, vless)
                 }) {
                     Text(stringResource(R.string.btn_save))
@@ -380,7 +381,7 @@ fun XraySetupScreen(
                     onClick = {
                         HapticUtil.perform(context, HapticUtil.Pattern.CLICK)
                         val wg = WgConfig(privateKey, address, mtu, publicKey, endpoint, persistentKeepalive)
-                        val vless = VlessConfig(vlessLink, vlessIsDualRoute, vlessDirectAddress, vlessHcInterval, vlessMux)
+                        val vless = VlessConfig(vlessLink, vlessIsDualRoute, vlessDirectAddress, vlessHcInterval, vlessMux, vlessOnly)
                         onSave(xrayConfiguration, wg, vless)
                     },
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -488,6 +489,8 @@ fun XraySetupScreen(
                         onVlessHcIntervalChange = { vlessHcInterval = it },
                         vlessMux = vlessMux,
                         onVlessMuxChange = { vlessMux = it },
+                        vlessOnly = vlessOnly,
+                        onVlessOnlyChange = { vlessOnly = it },
                         vlessLinkHistory = vlessLinkHistory,
                         onRemoveHistoryItem = onRemoveHistoryItem,
                         initialVlessConfig = initialVlessConfig,
@@ -661,6 +664,7 @@ private fun VlessSettingsBlock(
     vlessDirectAddress: String, onVlessDirectAddressChange: (String) -> Unit,
     vlessHcInterval: String, onVlessHcIntervalChange: (String) -> Unit,
     vlessMux: String, onVlessMuxChange: (String) -> Unit,
+    vlessOnly: Boolean, onVlessOnlyChange: (Boolean) -> Unit,
     vlessLinkHistory: List<String>,
     onRemoveHistoryItem: (String) -> Unit,
     initialVlessConfig: VlessConfig,
@@ -788,6 +792,33 @@ private fun VlessSettingsBlock(
                             isError = vlessHcInterval.isNotEmpty() && vlessHcInterval.toIntOrNull() == null,
                             isModified = isEditMode && vlessHcInterval != initialVlessConfig.hcInterval,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                    }
+                }
+            }
+
+            // VLESS_ONLY: pure VLESS path (kernel parked). Mutually exclusive with
+            // dual-route, so it is only offered while dual-route is off.
+            ExpandableSection(visible = !vlessIsDualRoute) {
+                Column {
+                    Spacer(Modifier.height(12.dp))
+                    SectionItem(
+                        position = ItemPosition.Single,
+                        onClick = {
+                            val next = !vlessOnly
+                            HapticUtil.perform(context, if (next) HapticUtil.Pattern.TOGGLE_ON else HapticUtil.Pattern.TOGGLE_OFF)
+                            onVlessOnlyChange(next)
+                        }
+                    ) {
+                        SwitchRow(
+                            label = stringResource(R.string.vless_only),
+                            supportingText = stringResource(R.string.vless_only_desc),
+                            checked = vlessOnly,
+                            onCheckedChange = { next ->
+                                HapticUtil.perform(context, if (next) HapticUtil.Pattern.TOGGLE_ON else HapticUtil.Pattern.TOGGLE_OFF)
+                                onVlessOnlyChange(next)
+                            },
+                            isModified = isEditMode && vlessOnly != initialVlessConfig.vlessOnly
                         )
                     }
                 }
