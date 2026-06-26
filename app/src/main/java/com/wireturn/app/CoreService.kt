@@ -96,7 +96,7 @@ class CoreService : Service() {
             val prefs = AppPreferences(applicationContext)
             val cfg = prefs.clientConfigFlow.first()
             val profileName = prefs.currentProfileNameFlow.first().orEmpty()
-            val vlessConfig = prefs.vlessConfigFlow.first()
+            val vlessConfig = prefs.vlessConfigFlow.first().fillDefaults()
             val xrayConfig = prefs.xrayConfigFlow.first()
 
             // Сразу фиксируем работающий конфиг для UI (с заполненными дефолтами)

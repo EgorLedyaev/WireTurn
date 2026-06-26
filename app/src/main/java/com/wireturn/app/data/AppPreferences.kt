@@ -698,7 +698,11 @@ data class VlessConfig(
             hcInterval = hcInterval.ifBlank { "30" },
             mux = mux.ifBlank { "0" }
         )
-        if (current.isDualRoute && current.directAddress.isBlank()) {
+        if (current.vlessLink.isBlank()) {
+            // A blank link can't drive a direct/dual route. Force olcrtc-only so a
+            // cleared link doesn't leave a stale dual-route (dead xray / false "direct vless").
+            current = current.copy(isDualRoute = false, vlessOnly = false, directAddress = "")
+        } else if (current.isDualRoute && current.directAddress.isBlank()) {
             ValidatorUtils.parseVlessAddress(current.vlessLink)?.let {
                 current = current.copy(directAddress = it)
             }

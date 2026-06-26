@@ -664,7 +664,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateProfileById(profileId: String, update: (Profile) -> Profile) {
         val profile = profiles.value.find { it.id == profileId } ?: return
-        profileManager.updateCurrentProfile(update(profile))
+        val updated = update(profile)
+        profileManager.updateCurrentProfile(updated)
+        // If we just edited the ACTIVE profile, also refresh the live ACTIVE_*_JSON that
+        // the running service reads — otherwise a reconnect keeps the stale config (e.g.
+        // a removed VLESS link still connects/displays as "direct vless").
+        if (profileId == currentProfileId.value) {
+            val defaultName = getApplication<Application>().getString(R.string.profile_default_name)
+            viewModelScope.launch { prefs.saveFullProfile(profileId, updated.sanitize(defaultName)) }
+        }
     }
 
     fun cloneProfile(id: String, name: String) = profileManager.cloneProfile(id, name)
