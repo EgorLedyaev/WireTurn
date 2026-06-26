@@ -731,6 +731,26 @@ fun ProfilesDialog(
                                             )
                                         }
                                     )
+                                    DropdownMenuItem(
+                                        text = { Text("Subscriptions") },
+                                        leadingIcon = {
+                                            Icon(
+                                                painterResource(R.drawable.sync_24px),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        },
+                                        onClick = {
+                                            addMenuExpanded = false
+                                            HapticUtil.perform(context, HapticUtil.Pattern.CLICK)
+                                            context.startActivity(
+                                                android.content.Intent(
+                                                    context,
+                                                    com.wireturn.app.ui.activities.SubscriptionsActivity::class.java
+                                                )
+                                            )
+                                        }
+                                    )
                                 }
                             }
                         }

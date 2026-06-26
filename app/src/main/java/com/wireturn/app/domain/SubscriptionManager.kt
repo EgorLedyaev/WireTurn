@@ -42,18 +42,24 @@ class SubscriptionManager(
         scope.launch {
             val trimmed = url.trim()
             if (trimmed.isBlank()) return@launch
-            val subs = prefs.subscriptionsFlow.first()
-            if (subs.any { it.url == trimmed }) {
-                refreshInternal(subs.first { it.url == trimmed }.id)
-                return@launch
+            // Read+save under the lock so concurrent adds can't clobber each other,
+            // then refresh AFTER releasing it (the Mutex is non-reentrant).
+            val id = mutex.withLock {
+                val subs = prefs.subscriptionsFlow.first()
+                val existing = subs.firstOrNull { it.url == trimmed }
+                if (existing != null) {
+                    existing.id
+                } else {
+                    val sub = Subscription(
+                        name = name.ifBlank { hostOf(trimmed) },
+                        url = trimmed,
+                        intervalHours = if (intervalHours <= 0) 12 else intervalHours
+                    )
+                    prefs.saveSubscriptions(subs + sub)
+                    sub.id
+                }
             }
-            val sub = Subscription(
-                name = name.ifBlank { hostOf(trimmed) },
-                url = trimmed,
-                intervalHours = if (intervalHours <= 0) 12 else intervalHours
-            )
-            prefs.saveSubscriptions(subs + sub)
-            refreshInternal(sub.id)
+            refreshInternal(id)
         }
     }
 
@@ -140,7 +146,8 @@ class SubscriptionManager(
     // Every incoming profile needs a remoteKey for matching: prefer the server
     // uid (already promoted into remoteKey by sanitize()), else filename/index.
     private fun ensureKey(p: Profile, fileKey: String?, index: Int): Profile =
-        if (!p.remoteKey.isNullOrBlank()) p else p.copy(remoteKey = fileKey ?: "i:$index")
+        if (!p.remoteKey.isNullOrBlank()) p
+        else p.copy(remoteKey = fileKey?.let { "$it:$index" } ?: "i:$index")
 
     private suspend fun mergeLocked(subId: String, incoming: List<Profile>) {
         val current = prefs.profilesFlow.first()

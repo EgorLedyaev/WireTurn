@@ -1,0 +1,41 @@
+package com.wireturn.app.ui.activities
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.viewModels
+import androidx.compose.runtime.getValue
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wireturn.app.ui.screens.SubscriptionsScreen
+import com.wireturn.app.ui.theme.WireturnTheme
+import com.wireturn.app.viewmodel.MainViewModel
+
+class SubscriptionsActivity : ComponentActivity() {
+    private val viewModel: MainViewModel by viewModels()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
+        super.onCreate(savedInstanceState)
+
+        splashScreen.setKeepOnScreenCondition { !viewModel.isInitialized.value }
+
+        setContent {
+            val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+            val dynamicTheme by viewModel.dynamicTheme.collectAsStateWithLifecycle()
+
+            WireturnTheme(themeMode = themeMode, dynamicColor = dynamicTheme) {
+                val subs by viewModel.subscriptions.collectAsStateWithLifecycle()
+                SubscriptionsScreen(
+                    subscriptions = subs,
+                    onBack = { finish() },
+                    onAdd = { name, url, interval -> viewModel.addSubscription(name, url, interval) },
+                    onRefresh = { id -> viewModel.refreshSubscription(id) },
+                    onRefreshAll = { viewModel.refreshAllSubscriptions() },
+                    onDelete = { id, del -> viewModel.removeSubscription(id, del) },
+                    onToggle = { id, en -> viewModel.setSubscriptionEnabled(id, en) }
+                )
+            }
+        }
+    }
+}

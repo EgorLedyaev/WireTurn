@@ -111,6 +111,11 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".ui.activities.SubscriptionsActivity"
+            android:theme="@style/Theme.wireturn"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".ui.activities.cores.TurnableConfigActivity"
             android:theme="@style/Theme.wireturn"
             android:windowSoftInputMode="adjustResize" />
