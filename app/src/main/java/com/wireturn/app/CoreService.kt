@@ -727,7 +727,14 @@ class CoreService : Service() {
                 state.lastRemoteNotReadyTime = now
             } else {
                 state.remoteNotReadyCount++
-                if (state.remoteNotReadyCount >= 7) {
+                // Fork: raised 7 -> 30. A browsing burst (one app opening many
+                // parallel streams during warmup) produces ~7-15 transient
+                // "remote not ready" EOFs while the session is otherwise healthy
+                // and carrying traffic; restarting it was counterproductive. A
+                // genuinely wedged server fails EVERY stream continuously and
+                // still reaches 30 within seconds, so a real wedge is still
+                // caught (and the 90s control liveness is the backstop).
+                if (state.remoteNotReadyCount >= 30) {
                     AppLogsState.addLog(getString(R.string.log_core_too_many_remote_not_ready))
                     state.startupEmitted = true // Trigger watchdog
                     return true
