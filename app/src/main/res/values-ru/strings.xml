@@ -229,6 +229,7 @@
     <string name="error_no_connection">Нет соединения с сервером</string>
     <string name="error_apk_not_found">APK не найден в релизе</string>
     <string name="error_download_failed">Ошибка загрузки: %1$s</string>
+    <string name="error_update_signature_mismatch">Обновление отклонено: подпись не совпадает с установленным приложением</string>
     <string name="log_core_command">* [Core] Команда: %1$s</string>
     <string name="log_core_start">* [Core] ЗАПУСК ТУННЕЛЯ: %1$s</string>
     <string name="log_core_suppressed">* [Core] ТУННЕЛЬ ПОДАВЛЕН (ПРЯМОЙ МАРШРУТ)</string>
@@ -277,6 +278,24 @@
     <string name="log_dual_route_direct_lost">* [DualRoute] Прямое соединение потеряно, разблокировка туннеля</string>
     <string name="log_dual_route_unreachable_start_tunnel">* [DualRoute] Маршруты недоступны, запуск туннеля</string>
     <string name="log_dual_route_check_failed">* [DualRoute] Не удалось инициировать проверку: %1$s</string>
+    <string name="log_dual_route_recovery_timeout">* [DualRoute] Туннель не поднялся вовремя, восстановление прервано</string>
+
+    <!-- Subscriptions -->
+    <string name="subscriptions_title">Подписки</string>
+    <string name="subscriptions_refresh_all">Обновить все</string>
+    <string name="subscriptions_add">Добавить подписку</string>
+    <string name="subscriptions_empty">Пока нет подписок. Добавьте URL подписки панели для авто-импорта и обновления профилей.</string>
+    <string name="subscriptions_last_sync">Последняя синхронизация: %1$s</string>
+    <string name="subscriptions_refresh">Обновить</string>
+    <string name="subscriptions_delete">Удалить</string>
+    <string name="subscriptions_delete_title">Удалить подписку?</string>
+    <string name="subscriptions_delete_msg">Удалить \"%1$s\". Также удалить импортированные ею профили?</string>
+    <string name="subscriptions_delete_with_profiles">Удалить + профили</string>
+    <string name="subscriptions_keep_profiles">Оставить профили</string>
+    <string name="subscriptions_name_hint">Имя (необязательно)</string>
+    <string name="subscriptions_url_hint">URL подписки</string>
+    <string name="subscriptions_interval_hint">Интервал обновления (часы)</string>
+    <string name="subscriptions_add_confirm">Добавить</string>
 
     <string name="error_invalid_auth_key">Неверный ключ авторизации</string>
     <string name="log_core_slow_network_watchdog">* [Core] МЕДЛЕННАЯ СЕТЬ — увеличение задержки перезапуска</string>

@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.wireturn.app.R
@@ -55,11 +56,11 @@ fun SubscriptionsScreen(
     Scaffold(
         topBar = {
             AppTopAppBar(
-                title = "Subscriptions",
+                title = stringResource(R.string.subscriptions_title),
                 onBack = onBack,
                 actions = {
                     IconButton(onClick = onRefreshAll) {
-                        Icon(painterResource(R.drawable.refresh_24px), contentDescription = "Refresh all")
+                        Icon(painterResource(R.drawable.refresh_24px), contentDescription = stringResource(R.string.subscriptions_refresh_all))
                     }
                 }
             )
@@ -80,7 +81,7 @@ fun SubscriptionsScreen(
                     ) {
                         Icon(painterResource(R.drawable.add_24px), contentDescription = null, modifier = Modifier.size(24.dp))
                         Spacer(Modifier.size(12.dp))
-                        Text("Add subscription", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.subscriptions_add), style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }
@@ -89,13 +90,13 @@ fun SubscriptionsScreen(
 
             if (subscriptions.isEmpty()) {
                 Text(
-                    "No subscriptions yet. Add a panel subscription URL to auto-import and keep profiles updated.",
+                    stringResource(R.string.subscriptions_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(8.dp)
                 )
             } else {
-                SectionGroup(title = "Subscriptions") {
+                SectionGroup(title = stringResource(R.string.subscriptions_title)) {
                     subscriptions.forEachIndexed { i, sub ->
                         val pos = when {
                             subscriptions.size == 1 -> ItemPosition.Single
@@ -124,14 +125,14 @@ fun SubscriptionsScreen(
                                 if (sub.lastStatus.isNotBlank()) {
                                     Spacer(Modifier.height(4.dp))
                                     Text(
-                                        "Last sync: ${sub.lastStatus}",
+                                        stringResource(R.string.subscriptions_last_sync, sub.lastStatus),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                                 Row {
-                                    TextButton(onClick = { onRefresh(sub.id) }) { Text("Refresh") }
-                                    TextButton(onClick = { deleteTarget = sub }) { Text("Delete") }
+                                    TextButton(onClick = { onRefresh(sub.id) }) { Text(stringResource(R.string.subscriptions_refresh)) }
+                                    TextButton(onClick = { deleteTarget = sub }) { Text(stringResource(R.string.subscriptions_delete)) }
                                 }
                             }
                         }
@@ -153,15 +154,15 @@ fun SubscriptionsScreen(
     deleteTarget?.let { tgt ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text("Delete subscription?") },
-            text = { Text("Remove \"${tgt.name.ifBlank { tgt.url }}\". Also delete the profiles it imported?") },
+            title = { Text(stringResource(R.string.subscriptions_delete_title)) },
+            text = { Text(stringResource(R.string.subscriptions_delete_msg, tgt.name.ifBlank { tgt.url })) },
             confirmButton = {
-                TextButton(onClick = { onDelete(tgt.id, true); deleteTarget = null }) { Text("Delete + profiles") }
+                TextButton(onClick = { onDelete(tgt.id, true); deleteTarget = null }) { Text(stringResource(R.string.subscriptions_delete_with_profiles)) }
             },
             dismissButton = {
                 Row {
-                    TextButton(onClick = { onDelete(tgt.id, false); deleteTarget = null }) { Text("Keep profiles") }
-                    TextButton(onClick = { deleteTarget = null }) { Text("Cancel") }
+                    TextButton(onClick = { onDelete(tgt.id, false); deleteTarget = null }) { Text(stringResource(R.string.subscriptions_keep_profiles)) }
+                    TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) }
                 }
             }
         )
@@ -175,25 +176,25 @@ private fun AddSubscriptionDialog(onDismiss: () -> Unit, onConfirm: (String, Str
     var interval by remember { mutableStateOf("12") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add subscription") },
+        title = { Text(stringResource(R.string.subscriptions_add)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = name, onValueChange = { name = it },
-                    label = { Text("Name (optional)") }, singleLine = true,
+                    label = { Text(stringResource(R.string.subscriptions_name_hint)) }, singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = url, onValueChange = { url = it },
-                    label = { Text("Subscription URL") }, singleLine = true,
+                    label = { Text(stringResource(R.string.subscriptions_url_hint)) }, singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = interval,
                     onValueChange = { v -> interval = v.filter { it.isDigit() }.take(4) },
-                    label = { Text("Update interval (hours)") }, singleLine = true,
+                    label = { Text(stringResource(R.string.subscriptions_interval_hint)) }, singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -202,8 +203,8 @@ private fun AddSubscriptionDialog(onDismiss: () -> Unit, onConfirm: (String, Str
             TextButton(
                 enabled = url.isNotBlank(),
                 onClick = { onConfirm(name.trim(), url.trim(), interval.toIntOrNull() ?: 12) }
-            ) { Text("Add") }
+            ) { Text(stringResource(R.string.subscriptions_add_confirm)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }

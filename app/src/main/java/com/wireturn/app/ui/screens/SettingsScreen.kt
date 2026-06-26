@@ -299,7 +299,7 @@ fun SettingsScreen(
                 var localUrl by rememberSaveable { mutableStateOf(autoLaunchSettings.checkUrl) }
                 var localInterval by rememberSaveable { mutableStateOf(autoLaunchSettings.intervalMinutes.toString()) }
 
-                val defaultUrl = "https://www.google.com"
+                val defaultUrl = "https://www.google.com/generate_204"
                 val defaultInterval = 15
 
                 val isUrlValid = remember(localUrl) {

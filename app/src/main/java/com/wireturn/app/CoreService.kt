@@ -170,6 +170,7 @@ class CoreService : Service() {
         CoreTileService.requestUpdate(this)
 
         val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+        if (wakeLock?.isHeld == true) wakeLock?.release() // REL-4: avoid leaking the previous lock (initStartup runs on every Start)
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "WireTurn::BgLock")
         wakeLock?.acquire(TimeUnit.HOURS.toMillis(24))
 
@@ -516,7 +517,7 @@ class CoreService : Service() {
             lower.contains("panic") || lower.contains("fatal")
         ) {
             if (CoreServiceState.status.value !is CoreStatus.Suppressed) {
-                CoreServiceState.setStatus(CoreStatus.Error(line))
+                CoreServiceState.setStatus(CoreStatus.Error(AppLogsState.redactSecrets(line)))
                 updateNotification(getString(R.string.error_connecting))
             }
             state.startupFailed = true
@@ -660,7 +661,7 @@ class CoreService : Service() {
         }
 
         if (lower.contains("panic") || lower.contains("fatal") || lower.contains("error starting socks5")) {
-            CoreServiceState.setStatus(CoreStatus.Error(line))
+            CoreServiceState.setStatus(CoreStatus.Error(AppLogsState.redactSecrets(line)))
             state.startupFailed = true
             return true
         }
@@ -748,7 +749,7 @@ class CoreService : Service() {
         }
 
         if (lower.contains("panic") || lower.contains("fatal") || lower.contains("error starting socks5")) {
-            CoreServiceState.setStatus(CoreStatus.Error(line))
+            CoreServiceState.setStatus(CoreStatus.Error(AppLogsState.redactSecrets(line)))
             state.startupFailed = true
             return true
         }
@@ -1234,17 +1235,10 @@ class CoreService : Service() {
             if (speed in 1..150) return@withContext NetworkQuality.SLOW
         }
         
-        // 2. Проверка реальной задержки через TCP-соединение с max.ru (гарантированно доступен в РФ)
-        try {
-            val start = System.currentTimeMillis()
-            java.net.Socket().use { socket ->
-                socket.connect(java.net.InetSocketAddress("max.ru", 80), 1500)
-            }
-            val rtt = System.currentTimeMillis() - start
-            // Если ответ шел дольше 800мс — считаем сеть медленной для watchdog
-            if (rtt > 800) NetworkQuality.SLOW else NetworkQuality.FAST
-        } catch (_: Exception) {
-            // Если max.ru недоступен совсем, это не "медленная сеть", а отсутствие интернета
+        // 2. Пассивная проверка: полагаемся на собственную валидацию ОС, без обращения к стороннему хосту.
+        if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
+            NetworkQuality.FAST
+        } else {
             NetworkQuality.OFFLINE
         }
     }

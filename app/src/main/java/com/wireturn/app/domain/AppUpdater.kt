@@ -166,6 +166,13 @@ class AppUpdater(private val context: Context) {
                     }
                 }
                 AppLogsState.addLog("Update downloaded successfully")
+                val signerOk = withContext(Dispatchers.IO) { verifyApkSignature(apkFile) }
+                if (!signerOk) {
+                    AppLogsState.addLog("Signature verification FAILED — downloaded APK signer does not match this app. Aborting install.")
+                    apkFile.delete()
+                    _state.value = UpdateState.Error(context.getString(R.string.error_update_signature_mismatch))
+                    return@withWorker
+                }
                 _state.value = UpdateState.ReadyToInstall
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
@@ -195,6 +202,47 @@ class AppUpdater(private val context: Context) {
     }
 
     // Private
+
+    @Suppress("DEPRECATION")
+    private fun verifyApkSignature(apkFile: File): Boolean {
+        return try {
+            val pm = context.packageManager
+            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+                PackageManager.GET_SIGNING_CERTIFICATES
+            else
+                PackageManager.GET_SIGNATURES
+            val downloaded = pm.getPackageArchiveInfo(apkFile.absolutePath, flags)
+            if (downloaded == null) {
+                AppLogsState.addLog("Signature check: cannot parse downloaded APK")
+                return false
+            }
+            if (downloaded.packageName != context.packageName) {
+                AppLogsState.addLog("Signature check: package mismatch (${downloaded.packageName})")
+                return false
+            }
+            val installedSigs = signaturesOf(pm.getPackageInfo(context.packageName, flags))
+            val downloadedSigs = signaturesOf(downloaded)
+            val ok = installedSigs.isNotEmpty() && installedSigs == downloadedSigs
+            if (!ok) AppLogsState.addLog("Signature check: signer certificate mismatch")
+            ok
+        } catch (e: Exception) {
+            AppLogsState.addLog("Signature check failed: ${e.message}")
+            false
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun signaturesOf(info: android.content.pm.PackageInfo): Set<android.content.pm.Signature> {
+        val sigs: Array<android.content.pm.Signature>? =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                info.signingInfo?.let {
+                    if (it.hasMultipleSigners()) it.apkContentsSigners else it.signingCertificateHistory
+                }
+            } else {
+                info.signatures
+            }
+        return sigs?.toSet() ?: emptySet()
+    }
 
     private fun fetchLatestRelease(proxy: java.net.Proxy? = null): JSONObject? {
         val json = fetchString(RELEASES_URL, proxy) ?: return null
@@ -331,20 +379,12 @@ class AppUpdater(private val context: Context) {
 
             // Если обе версии нестабильные, сравниваем хеши (если они есть)
             if (remoteIsUnstable && currentIsUnstable) {
-                val rHash = remote.split("-").lastOrNull()?.take(7)
-                val cHash = current.split("-").lastOrNull()?.take(7)
-                
-                // Если хеши в самих тегах/версиях совпали — это та же версия
-                if (rHash != null && cHash != null && rHash == cHash && rHash.length >= 7) return false
-                
-                // Если в удаленном теге нет хеша (напр. просто v1.0-unstable), 
-                // ищем хеш текущей версии в описании релиза
-                if (cHash != null && cHash.length >= 7 && remoteBody.contains(cHash)) {
-                    return false
-                }
-                
-                // Если номера версий одинаковые, но хеши разные (или текущий хеш не найден в удаленном)
-                // считаем, что на GitHub более свежая сборка (так как мы пересоздаем релиз)
+                // UPD-1: extract trailing git short-hash (>=7 hex) regardless of '-' count;
+                // split("-").last() can yield "unstable".
+                val hashRegex = Regex("[0-9a-f]{7,}")
+                val rHash = hashRegex.findAll(remote).lastOrNull()?.value
+                val cHash = hashRegex.findAll(current).lastOrNull()?.value
+                if (rHash != null && cHash != null && rHash == cHash) return false
                 val r = remote.toVersionList()
                 val c = current.toVersionList()
                 if (r == c) return true

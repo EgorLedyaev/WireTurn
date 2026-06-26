@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.InterruptedIOException
@@ -408,8 +409,17 @@ class XrayService : Service() {
                             val cfg = prefs.clientConfigFlow.first()
                             CoreService.start(this@XrayService, cfg)
                             
-                            // Force Xray to check connection after tunnel starts
-                            CoreServiceState.isWorking.first { it }
+                            // REL-1: bound the wait so a tunnel that never becomes
+                            // working can't suspend this recovery coroutine forever;
+                            // 120s matches the in-binary connectionWatchdog so a slow
+                            // tunnel still gets the forced check 3.
+                            val tunnelUp = withTimeoutOrNull(120_000) {
+                                CoreServiceState.isWorking.first { it }
+                            } != null
+                            if (!tunnelUp) {
+                                AppLogsState.addLog(getString(R.string.log_dual_route_recovery_timeout))
+                                return@launch
+                            }
                             delay(500.milliseconds)
                             try {
                                 withContext(Dispatchers.IO) {

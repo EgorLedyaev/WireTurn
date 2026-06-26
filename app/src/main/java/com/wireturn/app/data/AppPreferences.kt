@@ -687,6 +687,7 @@ data class VlessConfig(
 
     fun fillDefaults(): VlessConfig {
         var current = this.copy(
+            vlessLink = vlessLink.trim().take(4096), // UX-2: strip stray whitespace/newlines from pasted/served links
             hcInterval = hcInterval.ifBlank { "30" },
             mux = mux.ifBlank { "0" }
         )
@@ -939,7 +940,7 @@ data class VpnSettings(
 
 data class AutoLaunchSettings(
     val enabled: Boolean = false,
-    val checkUrl: String = "https://www.google.com",
+    val checkUrl: String = "https://www.google.com/generate_204",
     val intervalMinutes: Int = 15
 )
 
@@ -1092,7 +1093,7 @@ class AppPreferences(val context: Context) {
         .map {
             AutoLaunchSettings(
                 it[AUTO_LAUNCH_ENABLED] ?: false,
-                it[AUTO_LAUNCH_URL] ?: "https://www.google.com",
+                it[AUTO_LAUNCH_URL] ?: "https://www.google.com/generate_204",
                 it[AUTO_LAUNCH_INTERVAL] ?: 15
             )
         }.distinctUntilChanged()

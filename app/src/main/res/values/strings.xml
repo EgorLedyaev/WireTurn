@@ -261,6 +261,7 @@
     <string name="error_no_connection">No server connection</string>
     <string name="error_apk_not_found">APK not found in release</string>
     <string name="error_download_failed">Download error: %1$s</string>
+    <string name="error_update_signature_mismatch">Update rejected: signature does not match installed app</string>
     <string name="log_core_command">* [Core] Command: %1$s</string>
     <string name="log_core_start">* [Core] TUNNEL STARTING: %1$s</string>
     <string name="log_core_suppressed">* [Core] TUNNEL SUPPRESSED (DIRECT ROUTE)</string>
@@ -309,6 +310,24 @@
     <string name="log_dual_route_direct_lost">* [DualRoute] Direct connection lost, unsuppressing tunnel</string>
     <string name="log_dual_route_unreachable_start_tunnel">* [DualRoute] Routes unreachable, starting tunnel</string>
     <string name="log_dual_route_check_failed">* [DualRoute] Failed to trigger check: %1$s</string>
+    <string name="log_dual_route_recovery_timeout">* [DualRoute] Tunnel did not come up in time, recovery aborted</string>
+
+    <!-- Subscriptions -->
+    <string name="subscriptions_title">Subscriptions</string>
+    <string name="subscriptions_refresh_all">Refresh all</string>
+    <string name="subscriptions_add">Add subscription</string>
+    <string name="subscriptions_empty">No subscriptions yet. Add a panel subscription URL to auto-import and keep profiles updated.</string>
+    <string name="subscriptions_last_sync">Last sync: %1$s</string>
+    <string name="subscriptions_refresh">Refresh</string>
+    <string name="subscriptions_delete">Delete</string>
+    <string name="subscriptions_delete_title">Delete subscription?</string>
+    <string name="subscriptions_delete_msg">Remove \"%1$s\". Also delete the profiles it imported?</string>
+    <string name="subscriptions_delete_with_profiles">Delete + profiles</string>
+    <string name="subscriptions_keep_profiles">Keep profiles</string>
+    <string name="subscriptions_name_hint">Name (optional)</string>
+    <string name="subscriptions_url_hint">Subscription URL</string>
+    <string name="subscriptions_interval_hint">Update interval (hours)</string>
+    <string name="subscriptions_add_confirm">Add</string>
 
     <string name="error_invalid_auth_key">Invalid authorization key</string>
     <string name="log_core_slow_network_watchdog">* [Core] SLOW NETWORK DETECTED — increasing watchdog delay</string>
