@@ -38,29 +38,37 @@ class SubscriptionManager(
 
     private val mutex = Mutex()
 
-    fun addSubscription(name: String, url: String, intervalHours: Int = 12) {
-        scope.launch {
-            val trimmed = url.trim()
-            if (trimmed.isBlank()) return@launch
-            // Read+save under the lock so concurrent adds can't clobber each other,
-            // then refresh AFTER releasing it (the Mutex is non-reentrant).
-            val id = mutex.withLock {
-                val subs = prefs.subscriptionsFlow.first()
-                val existing = subs.firstOrNull { it.url == trimmed }
-                if (existing != null) {
-                    existing.id
-                } else {
-                    val sub = Subscription(
-                        name = name.ifBlank { hostOf(trimmed) },
-                        url = trimmed,
-                        intervalHours = if (intervalHours <= 0) 12 else intervalHours
-                    )
-                    prefs.saveSubscriptions(subs + sub)
-                    sub.id
-                }
+    enum class AddOutcome { ADDED, ALREADY_EXISTS, INVALID }
+
+    /**
+     * Adds (or finds an existing) subscription and reports the outcome to the caller;
+     * the refresh runs in the background. Read+save happen under the lock so concurrent
+     * adds can't clobber each other (refresh runs AFTER — the Mutex is non-reentrant).
+     */
+    suspend fun addAndReport(name: String, url: String, intervalHours: Int = 12): AddOutcome {
+        val trimmed = url.trim()
+        if (trimmed.isBlank()) return AddOutcome.INVALID
+        val (id, outcome) = mutex.withLock {
+            val subs = prefs.subscriptionsFlow.first()
+            val existing = subs.firstOrNull { it.url == trimmed }
+            if (existing != null) {
+                existing.id to AddOutcome.ALREADY_EXISTS
+            } else {
+                val sub = Subscription(
+                    name = name.ifBlank { hostOf(trimmed) },
+                    url = trimmed,
+                    intervalHours = if (intervalHours <= 0) 12 else intervalHours
+                )
+                prefs.saveSubscriptions(subs + sub)
+                sub.id to AddOutcome.ADDED
             }
-            refreshInternal(id)
         }
+        scope.launch { refreshInternal(id) }
+        return outcome
+    }
+
+    fun addSubscription(name: String, url: String, intervalHours: Int = 12) {
+        scope.launch { addAndReport(name, url, intervalHours) }
     }
 
     fun removeSubscription(id: String, deleteProfiles: Boolean) {

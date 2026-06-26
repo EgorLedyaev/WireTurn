@@ -302,6 +302,13 @@
     <string name="subscriptions_url_hint">URL подписки</string>
     <string name="subscriptions_interval_hint">Интервал обновления (часы)</string>
     <string name="subscriptions_add_confirm">Добавить</string>
+    <string name="ok">OK</string>
+    <string name="onboarding_invalid_title">Неверная ссылка</string>
+    <string name="onboarding_invalid_msg">Эта ссылка подписки недействительна.</string>
+    <string name="onboarding_confirm_title">Добавить подписку?</string>
+    <string name="onboarding_confirm_msg">Добавить подписку с %1$s?</string>
+    <string name="onboarding_added">Подписка добавлена</string>
+    <string name="onboarding_exists">Подписка уже добавлена</string>
 
     <string name="error_invalid_auth_key">Неверный ключ авторизации</string>
     <string name="log_core_slow_network_watchdog">* [Core] МЕДЛЕННАЯ СЕТЬ — увеличение задержки перезапуска</string>

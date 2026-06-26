@@ -70,6 +70,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun addSubscription(name: String, url: String, intervalHours: Int = 12) =
         subscriptionManager.addSubscription(name, url, intervalHours)
 
+    suspend fun addSubscriptionAwait(name: String, url: String, intervalHours: Int = 12) =
+        subscriptionManager.addAndReport(name, url, intervalHours)
+
     fun removeSubscription(id: String, deleteProfiles: Boolean) =
         subscriptionManager.removeSubscription(id, deleteProfiles)
 

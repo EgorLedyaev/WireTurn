@@ -116,6 +116,21 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".ui.activities.AddSubscriptionActivity"
+            android:exported="true"
+            android:theme="@style/Theme.wireturn.Transparent"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:taskAffinity="">
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="wireturn" android:host="addsub" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".ui.activities.cores.TurnableConfigActivity"
             android:theme="@style/Theme.wireturn"
             android:windowSoftInputMode="adjustResize" />
