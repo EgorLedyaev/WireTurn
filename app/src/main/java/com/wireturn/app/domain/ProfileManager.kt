@@ -50,7 +50,11 @@ class ProfileManager(
         val validatedName = newName.takeIf { it.isNotBlank() } ?: nextDefaultProfileName(currentList)
         val clonedProfile = profile.copy(
             id = UUID.randomUUID().toString(),
-            name = validatedName
+            name = validatedName,
+            // A clone is a fresh local profile — never inherit subscription
+            // ownership, or it would collide with its source in the sync merge.
+            subscriptionId = null,
+            remoteKey = null
         )
         val newList = currentList + clonedProfile
         scope.launch { prefs.saveProfiles(newList) }
