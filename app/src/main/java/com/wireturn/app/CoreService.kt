@@ -709,14 +709,13 @@ class CoreService : Service() {
         }
 
         if (lower.contains("failed to connect link") || lower.contains("failed to create link")) {
-            if (getNetworkQuality() == NetworkQuality.FAST) {
-                // Быстрая сеть, но ошибка линка — платформа недоступна
-                CoreServiceState.setStatus(CoreStatus.Error(getString(R.string.error_platform_unavailable)))
-                state.startupFailed = true
-            } else {
-                // Либо медленная, либо лежит совсем — на откуп watchdog
-                state.startupEmitted = true
-            }
+            // Fork: a transient carrier blip on the FIRST attempt is common
+            // (e.g. "xmpp dial: ... bosh connection closed" against a flaky public
+            // Jitsi) and recovers on retry. Always let the watchdog retry (it caps
+            // at 10 attempts and will surface an error if the platform is truly
+            // down) instead of giving up on a fast network — the old fast-network
+            // branch forced the user to manually start a second time.
+            state.startupEmitted = true
             return true
         }
 
