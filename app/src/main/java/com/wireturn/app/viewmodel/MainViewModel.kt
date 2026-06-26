@@ -60,6 +60,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         prefs = prefs,
         scope = ProcessLifecycleOwner.get().lifecycleScope
     )
+    private val subscriptionManager = com.wireturn.app.domain.SubscriptionManager(
+        prefs = prefs,
+        scope = ProcessLifecycleOwner.get().lifecycleScope
+    )
+    val subscriptions: StateFlow<List<com.wireturn.app.data.Subscription>> =
+        subscriptionManager.subscriptions
+
+    fun addSubscription(name: String, url: String, intervalHours: Int = 12) =
+        subscriptionManager.addSubscription(name, url, intervalHours)
+
+    fun removeSubscription(id: String, deleteProfiles: Boolean) =
+        subscriptionManager.removeSubscription(id, deleteProfiles)
+
+    fun refreshSubscription(id: String) = subscriptionManager.refresh(id)
+
+    fun refreshAllSubscriptions() = subscriptionManager.refreshAll()
+
+    fun setSubscriptionEnabled(id: String, enabled: Boolean) =
+        subscriptionManager.setEnabled(id, enabled)
 
     val coreState: StateFlow<CoreState> = coreManager.coreState
     val logs: StateFlow<List<AppLogsState.LogEntry>> = AppLogsState.logs
@@ -208,6 +227,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val toActivate = currentProfiles.find { it.id == currentId } ?: currentProfiles.first()
                     prefs.saveFullProfile(toActivate.id, toActivate)
                 }
+            }
+
+            // Refresh due subscriptions on app open (own coroutine; never blocks init).
+            ProcessLifecycleOwner.get().lifecycleScope.launch {
+                if (isNetworkAvailable()) runCatching { subscriptionManager.refreshDue() }
             }
 
             launch { prefs.onboardingDoneFlow.collect { _onboardingDone.value = it } }
