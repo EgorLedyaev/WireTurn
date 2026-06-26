@@ -7,6 +7,15 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      seed_sub_url:
+        description: 'Pre-seed this subscription URL into the build (empty = normal build; seeded builds are artifact-only, never published to unstable-latest)'
+        required: false
+        default: ''
+      seed_sub_name:
+        description: 'Display name for the pre-seeded subscription'
+        required: false
+        default: ''
 
 jobs:
   build:
@@ -99,7 +108,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew assembleRelease -Pandroid.ndkVersion=${{ steps.vars.outputs.ndk_version }}
+        run: ./gradlew assembleRelease -Pandroid.ndkVersion=${{ steps.vars.outputs.ndk_version }} "-PseedSubUrl=${{ github.event.inputs.seed_sub_url }}" "-PseedSubName=${{ github.event.inputs.seed_sub_name }}"
 
       - name: Sign APK
         uses: r0adkll/sign-android-release@v1
@@ -154,7 +163,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Delete Old Unstable Release
-        if: github.ref == 'refs/heads/unstable'
+        if: github.ref == 'refs/heads/unstable' && (github.event.inputs.seed_sub_url == null || github.event.inputs.seed_sub_url == '')
         run: |
           gh release delete unstable-latest --yes --cleanup-tag || true
         env:
@@ -162,7 +171,7 @@ jobs:
 
       - name: Create Unstable Release
         uses: softprops/action-gh-release@v3
-        if: github.ref == 'refs/heads/unstable'
+        if: github.ref == 'refs/heads/unstable' && (github.event.inputs.seed_sub_url == null || github.event.inputs.seed_sub_url == '')
         with:
           tag_name: unstable-latest
           name: "Unstable Build v${{ steps.vars.outputs.version_name }}-${{ steps.vars.outputs.sha_short }}"

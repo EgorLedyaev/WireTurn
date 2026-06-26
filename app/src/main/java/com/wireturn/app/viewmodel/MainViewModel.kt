@@ -236,6 +236,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
 
+            // Custom per-friend build: pre-seed a subscription on first launch only
+            // (BuildConfig.SEED_SUB_URL, empty in generic builds). Runs once via a flag,
+            // so the user can still remove it afterwards.
+            runCatching {
+                if (!prefs.seedSubscriptionAppliedFlow.first() &&
+                    com.wireturn.app.BuildConfig.SEED_SUB_URL.isNotBlank()) {
+                    subscriptionManager.addSubscription(
+                        com.wireturn.app.BuildConfig.SEED_SUB_NAME,
+                        com.wireturn.app.BuildConfig.SEED_SUB_URL
+                    )
+                    prefs.setSeedSubscriptionApplied(true)
+                }
+            }
+
             // Refresh due subscriptions on app open (own coroutine; never blocks init).
             ProcessLifecycleOwner.get().lifecycleScope.launch {
                 if (isNetworkAvailable()) runCatching { subscriptionManager.refreshDue() }

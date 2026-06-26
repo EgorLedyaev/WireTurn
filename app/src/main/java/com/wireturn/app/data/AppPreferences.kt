@@ -981,6 +981,7 @@ class AppPreferences(val context: Context) {
         val ALLOW_UNSTABLE_UPDATES = booleanPreferencesKey("allow_unstable_updates")
         val WAIT_FOR_NETWORK = booleanPreferencesKey("wait_for_network")
         val VPN_KILL_SWITCH = booleanPreferencesKey("vpn_kill_switch")
+        val SEED_SUB_APPLIED = booleanPreferencesKey("seed_sub_applied")
         val RESTART_ON_NETWORK_CHANGE = booleanPreferencesKey("restart_on_network_change")
         val CAPTCHA_STYLE_MOD = booleanPreferencesKey("captcha_style_mod")
         val CAPTCHA_FORCE_TINT = booleanPreferencesKey("captcha_force_tint")
@@ -1039,6 +1040,7 @@ class AppPreferences(val context: Context) {
     val allowUnstableUpdatesFlow: Flow<Boolean> = appCtx.internalDataStore.data.mapPref(ALLOW_UNSTABLE_UPDATES, false)
     val waitForNetworkFlow: Flow<Boolean> = appCtx.internalDataStore.data.mapPref(WAIT_FOR_NETWORK, true)
     val killSwitchFlow: Flow<Boolean> = appCtx.internalDataStore.data.mapPref(VPN_KILL_SWITCH, true)
+    val seedSubscriptionAppliedFlow: Flow<Boolean> = appCtx.internalDataStore.data.mapPref(SEED_SUB_APPLIED, false)
     val restartOnNetworkChangeFlow: Flow<Boolean> = appCtx.internalDataStore.data.mapPref(RESTART_ON_NETWORK_CHANGE, false)
     val captchaStyleModFlow: Flow<Boolean> = appCtx.internalDataStore.data.mapPref(CAPTCHA_STYLE_MOD, true)
     val captchaForceTintFlow: Flow<Boolean> = appCtx.internalDataStore.data.mapPref(CAPTCHA_FORCE_TINT, true)
@@ -1236,6 +1238,10 @@ class AppPreferences(val context: Context) {
 
     suspend fun setKillSwitch(v: Boolean) {
         appCtx.internalDataStore.edit { it[VPN_KILL_SWITCH] = v }
+    }
+
+    suspend fun setSeedSubscriptionApplied(v: Boolean) {
+        appCtx.internalDataStore.edit { it[SEED_SUB_APPLIED] = v }
     }
 
     suspend fun setRestartOnNetworkChange(v: Boolean) {

@@ -29,6 +29,11 @@ android {
             .parse("2020-01-01 00:00")!!.time
         versionCode = ((Date().time - epoch2020) / 60000L).toInt()
         versionName = project.property("project.versionName").toString()
+
+        // Optional pre-seeded subscription for a custom per-friend build (empty in
+        // generic builds; pass -PseedSubUrl / -PseedSubName). Applied once on first launch.
+        buildConfigField("String", "SEED_SUB_URL", "\"${(project.findProperty("seedSubUrl") as String? ?: "").replace("\\", "\\\\").replace("\"", "\\\"")}\"")
+        buildConfigField("String", "SEED_SUB_NAME", "\"${(project.findProperty("seedSubName") as String? ?: "").replace("\\", "\\\\").replace("\"", "\\\"")}\"")
     }
 
     splits {
@@ -55,6 +60,7 @@ android {
     buildFeatures {
         compose = true
         resValues = true
+        buildConfig = true
     }
 
     buildTypes {
