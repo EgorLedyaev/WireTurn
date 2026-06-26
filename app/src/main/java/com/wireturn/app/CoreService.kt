@@ -432,7 +432,12 @@ class CoreService : Service() {
             val connectionWatchdog = launch {
                 while (isActive) {
                     val status = CoreServiceState.status.value
-                    if (status is CoreStatus.Connecting) {
+                    // REL-3: once the core's SOCKS is up we no longer reap on the
+                    // Connecting timeout — a slow-but-alive relay must not be killed;
+                    // the tunnelProbe gates the green state and death detectors handle
+                    // a genuinely dead tunnel. This still reaps a core that never even
+                    // brings its listener up within 120s (true startup failure).
+                    if (status is CoreStatus.Connecting && !state.socksListening) {
                         if (state.connectingSince == 0L) {
                             state.connectingSince = System.currentTimeMillis()
                         } else if (System.currentTimeMillis() - state.connectingSince > 120_000) {
@@ -447,6 +452,35 @@ class CoreService : Service() {
                     delay(1_000.milliseconds)
                 }
             }
+
+            // REL-3: gate the green "Connected" state on a real end-to-end probe
+            // through the olcrtc tunnel. Promotes Connecting -> Connected only after a
+            // SOCKS5 CONNECT to 1.1.1.1:443 succeeds through the core's local proxy.
+            // It never restarts the core; after ~10s of failures it surfaces a
+            // "verifying" sub-status but keeps trying. olcrtc-only.
+            val tunnelProbe = if (cfg.kernelVariant == KernelVariant.OLCRTC) launch {
+                while (isActive && !state.socksListening) delay(200.milliseconds)
+                val probeStart = System.currentTimeMillis()
+                var verifyingShown = false
+                while (isActive) {
+                    if (probeTunnel(cfg)) {
+                        // Promote only from Connecting; if the route was transiently
+                        // Suppressed (dual-route) keep probing rather than break, so a
+                        // later Connecting still gets promoted (no stuck "Connecting").
+                        if (CoreServiceState.status.value is CoreStatus.Connecting) {
+                            CoreServiceState.setStatusText(null)
+                            CoreServiceState.setStatus(CoreStatus.Connected)
+                            updateNotification(getString(R.string.core_active))
+                            break
+                        }
+                    }
+                    if (!verifyingShown && System.currentTimeMillis() - probeStart > 10_000) {
+                        CoreServiceState.setStatusText(getString(R.string.verifying_tunnel))
+                        verifyingShown = true
+                    }
+                    delay(3_000.milliseconds)
+                }
+            } else null
 
             try {
                 withContext(Dispatchers.IO) {
@@ -463,6 +497,7 @@ class CoreService : Service() {
                 }
             } finally {
                 connectionWatchdog.cancel()
+                tunnelProbe?.cancel()
             }
 
             val exitCode = withContext(Dispatchers.IO) {
@@ -695,10 +730,17 @@ class CoreService : Service() {
         }
 
         if (lower.contains("socks5 server listening on")) {
-            if (CoreServiceState.status.value !is CoreStatus.Suppressed) {
-                CoreServiceState.setStatus(CoreStatus.Connected)
-                updateNotification(getString(R.string.core_active))
-                state.startupEmitted = true
+            // REL-3: the local SOCKS5 proxy is up, but that does NOT mean the tunnel
+            // carries traffic (false-green on UDP-blocked nets). Mark the core started
+            // so the startup watchdog won't reap it, but stay Connecting — the
+            // tunnelProbe coroutine promotes to Connected only after a real CONNECT
+            // through the tunnel succeeds. No probe-driven restart: genuine death is
+            // still caught by the liveness / remote-not-ready / peer-connect paths.
+            state.socksListening = true
+            state.startupEmitted = true
+            if (CoreServiceState.status.value !is CoreStatus.Suppressed &&
+                CoreServiceState.status.value !is CoreStatus.Connected) {
+                CoreServiceState.setStatus(CoreStatus.Connecting)
                 CoreServiceState.setRestarting(false)
             }
         }
@@ -757,6 +799,61 @@ class CoreService : Service() {
         return false
     }
 
+    // REL-3: end-to-end liveness probe — a SOCKS5 CONNECT to 1.1.1.1:443 THROUGH the
+    // core's local proxy. A success means the tunnel actually carried a TCP handshake
+    // to the internet (not just that the local listener is up). Used only to gate the
+    // green "Connected" state; it never triggers a restart. Handles both no-auth and
+    // RFC 1929 username/password SOCKS5 so it works regardless of socks-auth setting.
+    private suspend fun probeTunnel(cfg: ClientConfig): Boolean = withContext(Dispatchers.IO) {
+        val host = cfg.socksAddr.substringBefore(':').ifBlank { "127.0.0.1" }
+        val port = cfg.socksAddr.substringAfter(':', "2081").toIntOrNull() ?: 2081
+        try {
+            java.net.Socket().use { s ->
+                s.connect(java.net.InetSocketAddress(host, port), 5000)
+                s.soTimeout = 8000
+                val out = s.getOutputStream()
+                val inp = s.getInputStream()
+                val auth = cfg.isSocksAuthEnabled && cfg.socksUser.isNotEmpty()
+                if (auth) out.write(byteArrayOf(0x05, 0x02, 0x00, 0x02)) else out.write(byteArrayOf(0x05, 0x01, 0x00))
+                out.flush()
+                val method = ByteArray(2)
+                if (!readFully(inp, method) || method[0].toInt() != 0x05) return@withContext false
+                when (method[1].toInt() and 0xFF) {
+                    0x00 -> {}
+                    0x02 -> {
+                        if (!auth) return@withContext false
+                        val u = cfg.socksUser.toByteArray()
+                        val p = cfg.socksPass.toByteArray()
+                        val buf = java.io.ByteArrayOutputStream()
+                        buf.write(0x01); buf.write(u.size); buf.write(u); buf.write(p.size); buf.write(p)
+                        out.write(buf.toByteArray()); out.flush()
+                        val ar = ByteArray(2)
+                        if (!readFully(inp, ar) || ar[1].toInt() != 0x00) return@withContext false
+                    }
+                    else -> return@withContext false
+                }
+                // CONNECT 1.1.1.1:443 (0x01BB)
+                out.write(byteArrayOf(0x05, 0x01, 0x00, 0x01, 1, 1, 1, 1, 0x01, 0xBB.toByte()))
+                out.flush()
+                val rep = ByteArray(2)
+                if (!readFully(inp, rep)) return@withContext false
+                rep[0].toInt() == 0x05 && rep[1].toInt() == 0x00
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun readFully(inp: java.io.InputStream, buf: ByteArray): Boolean {
+        var off = 0
+        while (off < buf.size) {
+            val n = inp.read(buf, off, buf.size - off)
+            if (n < 0) return false
+            off += n
+        }
+        return true
+    }
+
     private fun getOnlineCount(lower: String): Int? {
         val matcher = ONLINE_COUNT_REGEX.matcher(lower)
         return if (matcher.find()) matcher.group(1)?.toIntOrNull() else null
@@ -791,6 +888,9 @@ class CoreService : Service() {
     private class BinaryOutputState {
         var startupEmitted = false
         var startupFailed = false
+        // Cross-thread (reader sets it; watchdog + tunnelProbe read it). The no-false-reap
+        // guarantee rests on the watchdog seeing this write, so keep it @Volatile.
+        @Volatile var socksListening = false
         var captchaActive = false
         var captchaSessionCounter = 0L
         var peerConnectFailedCount = 0

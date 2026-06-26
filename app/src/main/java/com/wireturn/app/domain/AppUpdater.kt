@@ -191,6 +191,13 @@ class AppUpdater(private val context: Context) {
             return
         }
 
+        if (!verifyApkSignature(apkFile)) {
+            AppLogsState.addLog("Signature verification FAILED at install — aborting.")
+            apkFile.delete()
+            _state.value = UpdateState.Error(context.getString(R.string.error_update_signature_mismatch))
+            return
+        }
+
         val uri = FileProvider.getUriForFile(
             context, "${context.packageName}.fileprovider", apkFile
         )

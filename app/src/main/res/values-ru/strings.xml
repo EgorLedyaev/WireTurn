@@ -279,6 +279,7 @@
     <string name="log_dual_route_unreachable_start_tunnel">* [DualRoute] Маршруты недоступны, запуск туннеля</string>
     <string name="log_dual_route_check_failed">* [DualRoute] Не удалось инициировать проверку: %1$s</string>
     <string name="log_dual_route_recovery_timeout">* [DualRoute] Туннель не поднялся вовремя, восстановление прервано</string>
+    <string name="verifying_tunnel">Проверка туннеля…</string>
 
     <!-- Subscriptions -->
     <string name="subscriptions_title">Подписки</string>

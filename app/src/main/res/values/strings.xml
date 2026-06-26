@@ -311,6 +311,7 @@
     <string name="log_dual_route_unreachable_start_tunnel">* [DualRoute] Routes unreachable, starting tunnel</string>
     <string name="log_dual_route_check_failed">* [DualRoute] Failed to trigger check: %1$s</string>
     <string name="log_dual_route_recovery_timeout">* [DualRoute] Tunnel did not come up in time, recovery aborted</string>
+    <string name="verifying_tunnel">Verifying tunnel…</string>
 
     <!-- Subscriptions -->
     <string name="subscriptions_title">Subscriptions</string>
