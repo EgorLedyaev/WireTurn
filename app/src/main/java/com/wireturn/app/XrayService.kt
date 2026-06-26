@@ -252,13 +252,7 @@ class XrayService : Service() {
             val cmdArgs = mutableListOf(
                 executable,
                 "-listen", xraySettings.socksBindAddress,
-                "-stats-socket", socketName,
-                // RU-reachable resolver for xray's OWN lookups (the VLESS server address
-                // and the load-balancer health-check probe). The vless-client defaults to
-                // 8.8.8.8 / 1.1.1.1, which TSPU throttles in Russia — so resolving
-                // api-gateway-service.top (and the probe) times out, the direct VLESS route
-                // reads as "unreachable", and dual-route wrongly falls back to olcrtc.
-                "-dns", "77.88.8.8,77.88.8.1"
+                "-stats-socket", socketName
             )
 
             if (xraySettings.httpBindAddress.isNotBlank()) {
