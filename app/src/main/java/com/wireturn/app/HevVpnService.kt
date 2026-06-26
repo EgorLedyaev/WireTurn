@@ -115,6 +115,7 @@ class HevVpnService : VpnService() {
             AppLogsState.addLog(getString(R.string.log_vpn_establishing))
             val prefs = AppPreferences(applicationContext)
             val vpnSettings = prefs.vpnSettingsFlow.first()
+            val killSwitch = prefs.killSwitchFlow.first()
 
             val builder = this.Builder()
                 .setSession("wireturn VPN")
@@ -122,12 +123,20 @@ class HevVpnService : VpnService() {
                 .addAddress(TUN_IPV4_ADDRESS, 24)
                 .addDnsServer(MAPDNS_ADDRESS)
 
+            // Kill-switch / anti-leak: also claim the IPv6 default route so IPv6 traffic
+            // and DNS can't escape the (IPv4-only) tunnel and expose the real IP. hev has
+            // no IPv6 upstream, so captured v6 is black-holed and apps fall back to v4
+            // through the tunnel. Toggle off for the rare IPv6-only network.
+            if (killSwitch) builder.addAddress(TUN_IPV6_ADDRESS, 128)
+
             if (!vpnSettings.filteringEnabled) {
                 builder.addRoute("0.0.0.0", 0)
+                if (killSwitch) builder.addRoute("::", 0)
                 builder.addDisallowedApplication(packageName)
                 AppLogsState.addLog(getString(R.string.log_vpn_filtering_disabled))
             } else if (vpnSettings.bypassMode) {
                 builder.addRoute("0.0.0.0", 0)
+                if (killSwitch) builder.addRoute("::", 0)
                 builder.addDisallowedApplication(packageName)
                 vpnSettings.excludedApps.forEach { pkg ->
                     try { builder.addDisallowedApplication(pkg) }
@@ -136,6 +145,7 @@ class HevVpnService : VpnService() {
             } else {
                 if (vpnSettings.excludedApps.isNotEmpty()) {
                     builder.addRoute("0.0.0.0", 0)
+                    if (killSwitch) builder.addRoute("::", 0)
                     vpnSettings.excludedApps.forEach { pkg ->
                         try { builder.addAllowedApplication(pkg) }
                         catch (e: Exception) { AppLogsState.addLog(getString(R.string.log_vpn_include_failed, pkg, e.message ?: "Unknown")) }
@@ -283,6 +293,7 @@ misc:
 
         private const val TUN_MTU = 1280
         private const val TUN_IPV4_ADDRESS = "10.0.88.88"
+        private const val TUN_IPV6_ADDRESS = "fd00::1"
         private const val MAPDNS_ADDRESS = "1.1.1.1"
         private const val MAPDNS_NETWORK = "100.64.0.0"
         private const val MAPDNS_NETMASK = "255.192.0.0"

@@ -252,6 +252,7 @@ fun SettingsScreen(
 
             // 2.1 Сеть
             val waitForNetwork by viewModel.waitForNetwork.collectAsStateWithLifecycle()
+            val killSwitch by viewModel.killSwitch.collectAsStateWithLifecycle()
             val restartOnNetworkChange by viewModel.restartOnNetworkChange.collectAsStateWithLifecycle()
             val autoLaunchSettings by viewModel.autoLaunchSettings.collectAsStateWithLifecycle()
 
@@ -272,6 +273,25 @@ fun SettingsScreen(
                         supportingText = stringResource(R.string.wait_for_network_desc),
                         checked = waitForNetwork,
                         onCheckedChange = { viewModel.setWaitForNetwork(it) }
+                    )
+                }
+
+                SectionItem(
+                    position = ItemPosition.Middle,
+                    onClick = {
+                        val next = !killSwitch
+                        HapticUtil.perform(
+                            context,
+                            if (next) HapticUtil.Pattern.TOGGLE_ON else HapticUtil.Pattern.TOGGLE_OFF
+                        )
+                        viewModel.setKillSwitch(next)
+                    }
+                ) {
+                    SwitchRow(
+                        label = stringResource(R.string.kill_switch_title),
+                        supportingText = stringResource(R.string.kill_switch_desc),
+                        checked = killSwitch,
+                        onCheckedChange = { viewModel.setKillSwitch(it) }
                     )
                 }
 

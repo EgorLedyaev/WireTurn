@@ -112,6 +112,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _waitForNetwork = MutableStateFlow(true)
     val waitForNetwork: StateFlow<Boolean> = _waitForNetwork.asStateFlow()
 
+    private val _killSwitch = MutableStateFlow(true)
+    val killSwitch: StateFlow<Boolean> = _killSwitch.asStateFlow()
+
     private val _restartOnNetworkChange = MutableStateFlow(false)
     val restartOnNetworkChange: StateFlow<Boolean> = _restartOnNetworkChange.asStateFlow()
 
@@ -207,6 +210,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _appsExclusionHintShown.value = prefs.appsExclusionHintShownFlow.first()
             _allowUnstableUpdates.value = prefs.allowUnstableUpdatesFlow.first()
             _waitForNetwork.value = prefs.waitForNetworkFlow.first()
+            _killSwitch.value = prefs.killSwitchFlow.first()
             _restartOnNetworkChange.value = prefs.restartOnNetworkChangeFlow.first()
             _captchaStyleMod.value = prefs.captchaStyleModFlow.first()
             _captchaForceTint.value = prefs.captchaForceTintFlow.first()
@@ -247,6 +251,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             launch { prefs.appsExclusionHintShownFlow.collect { _appsExclusionHintShown.value = it } }
             launch { prefs.allowUnstableUpdatesFlow.collect { _allowUnstableUpdates.value = it } }
             launch { prefs.waitForNetworkFlow.collect { _waitForNetwork.value = it } }
+            launch { prefs.killSwitchFlow.collect { _killSwitch.value = it } }
             launch { prefs.restartOnNetworkChangeFlow.collect { _restartOnNetworkChange.value = it } }
             launch { prefs.captchaStyleModFlow.collect { _captchaStyleMod.value = it } }
             launch { prefs.captchaForceTintFlow.collect { _captchaForceTint.value = it } }
@@ -457,8 +462,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { prefs.setAllowUnstableUpdates(v) } 
     }
     
-    fun setWaitForNetwork(v: Boolean) { 
-        viewModelScope.launch { prefs.setWaitForNetwork(v) } 
+    fun setWaitForNetwork(v: Boolean) {
+        viewModelScope.launch { prefs.setWaitForNetwork(v) }
+    }
+
+    fun setKillSwitch(v: Boolean) {
+        viewModelScope.launch { prefs.setKillSwitch(v) }
     }
     
     fun setRestartOnNetworkChange(v: Boolean) { 
