@@ -98,20 +98,20 @@ class SubscriptionManager(
         }
         val now = System.currentTimeMillis()
         if (bytes == null) {
-            updateMetaLocked(id) { it.copy(lastStatus = "fetch failed", lastUpdated = now) }
+            updateMetaLocked(id) { it.copy(lastStatus = "fetch_failed", lastUpdated = now) }
             AppLogsState.addLog("Subscription '${sub.name}': fetch failed")
             return@withLock
         }
         val defaultName = prefs.context.getString(R.string.profile_default_name)
         val incoming = parseBytes(bytes, defaultName)
         if (incoming.isEmpty()) {
-            updateMetaLocked(id) { it.copy(lastStatus = "empty / parse error", lastUpdated = now) }
+            updateMetaLocked(id) { it.copy(lastStatus = "parse_error", lastUpdated = now) }
             AppLogsState.addLog("Subscription '${sub.name}': no profiles parsed")
             return@withLock
         }
         mergeLocked(id, incoming)
         updateMetaLocked(id) {
-            it.copy(lastStatus = "ok (${incoming.size})", lastUpdated = now, lastProfileCount = incoming.size)
+            it.copy(lastStatus = "ok", lastUpdated = now, lastProfileCount = incoming.size)
         }
         AppLogsState.addLog("Subscription '${sub.name}': synced ${incoming.size} profile(s)")
     }

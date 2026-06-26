@@ -732,7 +732,7 @@ fun ProfilesDialog(
                                         }
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Subscriptions") },
+                                        text = { Text(stringResource(R.string.subscriptions_title)) },
                                         leadingIcon = {
                                             Icon(
                                                 painterResource(R.drawable.sync_24px),

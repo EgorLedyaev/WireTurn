@@ -289,6 +289,9 @@
     <string name="subscriptions_add">Добавить подписку</string>
     <string name="subscriptions_empty">Пока нет подписок. Добавьте URL подписки панели для авто-импорта и обновления профилей.</string>
     <string name="subscriptions_last_sync">Последняя синхронизация: %1$s</string>
+    <string name="subscriptions_status_ok">%1$d профилей</string>
+    <string name="subscriptions_status_fetch_failed">Ошибка загрузки</string>
+    <string name="subscriptions_status_parse_error">Ошибка разбора</string>
     <string name="subscriptions_refresh">Обновить</string>
     <string name="subscriptions_delete">Удалить</string>
     <string name="subscriptions_delete_title">Удалить подписку?</string>

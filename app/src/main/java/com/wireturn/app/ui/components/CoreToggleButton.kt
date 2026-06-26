@@ -90,6 +90,7 @@ fun CoreToggleButton(
     val autoLaunchSettings by viewModel.autoLaunchSettings.collectAsStateWithLifecycle()
 
     val isRestarting by CoreServiceState.isRestarting.collectAsStateWithLifecycle()
+    val coreStatusText by CoreServiceState.statusText.collectAsStateWithLifecycle()
 
     var wasActiveBeforeRestart by remember { mutableStateOf(false) }
 
@@ -155,7 +156,7 @@ fun CoreToggleButton(
         }
         coreState is CoreState.Starting -> stringResource(R.string.starting)
         coreState is CoreState.Stopping -> stringResource(R.string.stopping)
-        coreState is CoreState.Connecting -> stringResource(R.string.connecting)
+        coreState is CoreState.Connecting -> coreStatusText ?: stringResource(R.string.connecting)
         coreState is CoreState.Suppressed -> {
             if (xrayState == XrayState.DirectRoute) stringResource(R.string.vless_direct_active)
             else stringResource(R.string.connecting)

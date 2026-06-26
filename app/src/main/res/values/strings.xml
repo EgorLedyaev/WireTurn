@@ -321,6 +321,9 @@
     <string name="subscriptions_add">Add subscription</string>
     <string name="subscriptions_empty">No subscriptions yet. Add a panel subscription URL to auto-import and keep profiles updated.</string>
     <string name="subscriptions_last_sync">Last sync: %1$s</string>
+    <string name="subscriptions_status_ok">%1$d profiles</string>
+    <string name="subscriptions_status_fetch_failed">Fetch failed</string>
+    <string name="subscriptions_status_parse_error">Parse error</string>
     <string name="subscriptions_refresh">Refresh</string>
     <string name="subscriptions_delete">Delete</string>
     <string name="subscriptions_delete_title">Delete subscription?</string>

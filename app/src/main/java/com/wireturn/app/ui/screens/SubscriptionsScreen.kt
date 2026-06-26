@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.wireturn.app.R
@@ -93,7 +94,8 @@ fun SubscriptionsScreen(
                     stringResource(R.string.subscriptions_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(8.dp)
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 32.dp)
                 )
             } else {
                 SectionGroup(title = stringResource(R.string.subscriptions_title)) {
@@ -124,15 +126,25 @@ fun SubscriptionsScreen(
                                 }
                                 if (sub.lastStatus.isNotBlank()) {
                                     Spacer(Modifier.height(4.dp))
+                                    val isError = sub.lastStatus == "fetch_failed" || sub.lastStatus == "parse_error"
+                                    val statusLabel = when (sub.lastStatus) {
+                                        "ok" -> stringResource(R.string.subscriptions_status_ok, sub.lastProfileCount)
+                                        "fetch_failed" -> stringResource(R.string.subscriptions_status_fetch_failed)
+                                        "parse_error" -> stringResource(R.string.subscriptions_status_parse_error)
+                                        else -> sub.lastStatus // legacy raw value
+                                    }
+                                    val age = if (sub.lastUpdated > 0)
+                                        android.text.format.DateUtils.getRelativeTimeSpanString(sub.lastUpdated).toString()
+                                    else ""
                                     Text(
-                                        stringResource(R.string.subscriptions_last_sync, sub.lastStatus),
+                                        if (age.isNotBlank()) "$statusLabel · $age" else statusLabel,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                                 Row {
                                     TextButton(onClick = { onRefresh(sub.id) }) { Text(stringResource(R.string.subscriptions_refresh)) }
-                                    TextButton(onClick = { deleteTarget = sub }) { Text(stringResource(R.string.subscriptions_delete)) }
+                                    TextButton(onClick = { deleteTarget = sub }) { Text(stringResource(R.string.subscriptions_delete), color = MaterialTheme.colorScheme.error) }
                                 }
                             }
                         }
