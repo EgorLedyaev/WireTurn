@@ -858,6 +858,15 @@ class CoreService : Service() {
             appendLine("net:")
             appendLine("  transport: ${o.transport}")
             appendLine("  dns: \"${o.dns}\"")
+            // Fork: generous liveness so the client does not reap a healthy
+            // relayed (TURNS-TCP) session whose control ping/pong is head-of-line
+            // blocked behind bulk data. A pong older than timeout is not counted,
+            // so timeout must exceed the worst round-trip under load; genuine
+            // transport death is still caught fast by WebRTC PeerConnectionState.
+            appendLine("liveness:")
+            appendLine("  interval: 15s")
+            appendLine("  timeout: 90s")
+            appendLine("  failures: 3")
             appendLine("socks:")
             appendLine("  host: \"${cfg.socksAddr.substringBefore(':').ifBlank { "127.0.0.1" }}\"")
             appendLine("  port: ${cfg.socksAddr.substringAfter(':', "9001").ifBlank { "9001" }}")
