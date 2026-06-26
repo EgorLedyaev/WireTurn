@@ -14,15 +14,20 @@ android {
     ndkVersion = "29.0.14206865"
 
     defaultConfig {
-        applicationId = "com.wireturn.app"
+        // Fork: side-by-side install (distinct id from upstream com.wireturn.app).
+        // packageName==applicationId at runtime, so FileProvider authority and the
+        // ${applicationId}.START_CORE/STOP_CORE actions stay internally consistent.
+        applicationId = "com.wireturn.fork"
         minSdk = project.property("project.minSdk").toString().toInt()
         targetSdk = project.property("project.targetSdk").toString().toInt()
-        
-        val date = Date()
-        val sdf = SimpleDateFormat("yyMMddHH", Locale.US)
-        sdf.timeZone = TimeZone.getTimeZone("UTC")
-        val formattedDate = sdf.format(date)
-        versionCode = formattedDate.toInt()
+
+        // Fork: minutes since 2020-01-01 UTC — unique per minute (upstream's
+        // yyMMddHH collides within the same hour, blocking in-place dogfood
+        // updates) and safely within Int range for ~40 years.
+        val epoch2020 = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
+            .apply { timeZone = TimeZone.getTimeZone("UTC") }
+            .parse("2020-01-01 00:00")!!.time
+        versionCode = ((Date().time - epoch2020) / 60000L).toInt()
         versionName = project.property("project.versionName").toString()
     }
 

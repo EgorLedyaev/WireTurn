@@ -202,7 +202,7 @@ class AppUpdater(private val context: Context) {
     }
 
     private fun fetchLatestUnstableRelease(proxy: java.net.Proxy? = null): JSONObject? {
-        val url = "https://api.github.com/repos/spkprsnts/WireTurn/releases"
+        val url = "https://api.github.com/repos/EgorLedyaev/WireTurn/releases"
         val json = fetchString(url, proxy) ?: return null
         
         return try {
@@ -310,7 +310,7 @@ class AppUpdater(private val context: Context) {
 
     companion object {
         private const val RELEASES_URL =
-            "https://api.github.com/repos/spkprsnts/WireTurn/releases/latest"
+            "https://api.github.com/repos/EgorLedyaev/WireTurn/releases/latest"
 
         private val _state = MutableStateFlow<UpdateState>(UpdateState.Idle)
         private val _downloadProgress = MutableStateFlow(0)

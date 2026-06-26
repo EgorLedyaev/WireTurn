@@ -406,7 +406,15 @@ class CoreService : Service() {
                 if (cfg.goDnsGo) {
                     env["GODEBUG"] = "netdns=go"
                 }
-                
+
+                // Fork: force olcrtc media over the JVB TURNS-TCP relay (turns:5349).
+                // The patched libolcrtc reads OLCRTC_FORCE_RELAY and pins
+                // ICETransportPolicy=Relay, which survives UDP-blocking (TSPU) WiFi
+                // and still works on whitelisted mobile. olcrtc-only; no yaml knob exists.
+                if (cfg.kernelConfig is KernelConfig.Olcrtc) {
+                    env["OLCRTC_FORCE_RELAY"] = "1"
+                }
+
                 builder.start()
             }
             process.set(proc)
