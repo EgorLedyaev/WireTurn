@@ -71,6 +71,36 @@ class SubscriptionManager(
         scope.launch { addAndReport(name, url, intervalHours) }
     }
 
+    /**
+     * Edits an existing subscription in place (name / URL / interval). The save runs
+     * under the lock; the re-fetch runs AFTER (the Mutex is non-reentrant). When the
+     * URL changed we clear lastStatus/lastUpdated and always re-sync so the imported
+     * profiles reflect the new source — mergeLocked drops profiles that vanished from
+     * the old URL and appends the new ones, keeping this subscription's [Profile.id]s
+     * stable where the remoteKey matches. Editing the URL therefore replaces a wrong
+     * link without orphaning profiles (no delete-then-re-add dance).
+     */
+    fun updateSubscription(id: String, name: String, url: String, intervalHours: Int = 12) {
+        scope.launch {
+            val trimmedUrl = url.trim()
+            if (trimmedUrl.isBlank()) return@launch
+            mutex.withLock {
+                val subs = prefs.subscriptionsFlow.first()
+                val sub = subs.firstOrNull { it.id == id } ?: return@withLock
+                val urlChanged = sub.url != trimmedUrl
+                val updated = sub.copy(
+                    name = name.trim().ifBlank { hostOf(trimmedUrl) },
+                    url = trimmedUrl,
+                    intervalHours = if (intervalHours <= 0) 12 else intervalHours,
+                    lastStatus = if (urlChanged) "" else sub.lastStatus,
+                    lastUpdated = if (urlChanged) 0L else sub.lastUpdated
+                )
+                prefs.saveSubscriptions(subs.map { if (it.id == id) updated else it })
+            }
+            refreshInternal(id)
+        }
+    }
+
     fun removeSubscription(id: String, deleteProfiles: Boolean) {
         scope.launch {
             mutex.withLock {

@@ -73,6 +73,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun addSubscriptionAwait(name: String, url: String, intervalHours: Int = 12) =
         subscriptionManager.addAndReport(name, url, intervalHours)
 
+    fun updateSubscription(id: String, name: String, url: String, intervalHours: Int = 12) =
+        subscriptionManager.updateSubscription(id, name, url, intervalHours)
+
     fun removeSubscription(id: String, deleteProfiles: Boolean) =
         subscriptionManager.removeSubscription(id, deleteProfiles)
 

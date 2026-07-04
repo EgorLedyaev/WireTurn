@@ -30,6 +30,7 @@ class SubscriptionsActivity : ComponentActivity() {
                     subscriptions = subs,
                     onBack = { finish() },
                     onAdd = { name, url, interval -> viewModel.addSubscription(name, url, interval) },
+                    onEdit = { id, name, url, interval -> viewModel.updateSubscription(id, name, url, interval) },
                     onRefresh = { id -> viewModel.refreshSubscription(id) },
                     onRefreshAll = { viewModel.refreshAllSubscriptions() },
                     onDelete = { id, del -> viewModel.removeSubscription(id, del) },

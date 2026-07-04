@@ -277,6 +277,7 @@
     <string name="log_vpn_stopped">* [VPN] TUN остановлен (hev-socks5-tunnel)</string>
     <string name="log_vpn_stop_error">* [VPN] Ошибка при остановке: %1$s (hev-socks5-tunnel)</string>
     <string name="log_vpn_restarting_config">* [VPN] Перезапуск из-за изменения настроек или восстановления</string>
+    <string name="log_vpn_revoked">* [VPN] Отключён другим VPN-приложением — останавливаемся</string>
 
     <string name="log_dual_route_direct_established">* [DualRoute] Прямое соединение установлено, подавление туннеля</string>
     <string name="log_dual_route_direct_lost">* [DualRoute] Прямое соединение потеряно, разблокировка туннеля</string>
@@ -304,6 +305,9 @@
     <string name="subscriptions_url_hint">URL подписки</string>
     <string name="subscriptions_interval_hint">Интервал обновления (часы)</string>
     <string name="subscriptions_add_confirm">Добавить</string>
+    <string name="subscriptions_edit">Изменить</string>
+    <string name="subscriptions_edit_title">Изменить подписку</string>
+    <string name="subscriptions_save">Сохранить</string>
     <string name="ok">OK</string>
     <string name="onboarding_invalid_title">Неверная ссылка</string>
     <string name="onboarding_invalid_msg">Эта ссылка подписки недействительна.</string>

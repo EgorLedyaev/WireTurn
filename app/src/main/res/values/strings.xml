@@ -309,6 +309,7 @@
     <string name="log_vpn_stopped">* [VPN] TUN stopped (hev-socks5-tunnel)</string>
     <string name="log_vpn_stop_error">* [VPN] Stop error: %1$s (hev-socks5-tunnel)</string>
     <string name="log_vpn_restarting_config">* [VPN] Restarting due to settings change or recovery</string>
+    <string name="log_vpn_revoked">* [VPN] Revoked by another VPN app — disconnecting</string>
 
     <string name="log_dual_route_direct_established">* [DualRoute] Direct connection established, suppressing tunnel</string>
     <string name="log_dual_route_direct_lost">* [DualRoute] Direct connection lost, unsuppressing tunnel</string>
@@ -336,6 +337,9 @@
     <string name="subscriptions_url_hint">Subscription URL</string>
     <string name="subscriptions_interval_hint">Update interval (hours)</string>
     <string name="subscriptions_add_confirm">Add</string>
+    <string name="subscriptions_edit">Edit</string>
+    <string name="subscriptions_edit_title">Edit subscription</string>
+    <string name="subscriptions_save">Save</string>
     <string name="ok">OK</string>
     <string name="onboarding_invalid_title">Invalid link</string>
     <string name="onboarding_invalid_msg">This subscription link is invalid.</string>
