@@ -419,12 +419,20 @@ class CoreService : Service() {
                     env["GODEBUG"] = "netdns=go"
                 }
 
-                // Fork: force olcrtc media over the JVB TURNS-TCP relay (turns:5349).
-                // The patched libolcrtc reads OLCRTC_FORCE_RELAY and pins
-                // ICETransportPolicy=Relay, which survives UDP-blocking (TSPU) WiFi
-                // and still works on whitelisted mobile. olcrtc-only; no yaml knob exists.
+                // olcrtc carrier tuning. The carriers we ship (samgups, mamba,
+                // stilsoft) negotiate media over policy=All (colibri-ws / JVB UDP);
+                // none advertises a usable TURN, so forcing ICETransportPolicy=Relay
+                // (the old OLCRTC_FORCE_RELAY) leaves 0 relay candidates and breaks
+                // them — we no longer force relay. Old-Jicofo carriers (stock
+                // docker-jitsi-meet, e.g. meet.samgups.ru 1.0.786) additionally need
+                // legacy jitsi-meet caps or Jicofo never sends session-initiate; the
+                // patched libolcrtc reads OLCRTC_LEGACY_CAPS to advertise them.
                 if (cfg.kernelConfig is KernelConfig.Olcrtc) {
-                    env["OLCRTC_FORCE_RELAY"] = "1"
+                    val room = (cfg.kernelConfig as KernelConfig.Olcrtc).config.id
+                    val host = room.substringAfter("://").substringBefore("/").substringBefore(":").trim()
+                    if (host in LEGACY_CAPS_HOSTS) {
+                        env["OLCRTC_LEGACY_CAPS"] = "1"
+                    }
                 }
 
                 builder.start()
@@ -1408,6 +1416,10 @@ class CoreService : Service() {
         const val ACTION_STOP = "ACTION_STOP"
         const val ACTION_STOP_BY_USER = "ACTION_STOP_BY_USER"
         const val MAX_RESTARTS = 10
+
+        // olcrtc carriers whose old Jicofo (stock docker-jitsi-meet) only invites
+        // participants advertising legacy jitsi-meet caps. Sets OLCRTC_LEGACY_CAPS.
+        private val LEGACY_CAPS_HOSTS = setOf("meet.samgups.ru")
         private val CAPTCHA_URL_REGEX = Pattern.compile("""Open this URL in your browser:\s*(https?://\S+)""")
         private val ONLINE_COUNT_REGEX = Pattern.compile("""online=(\d+)""")
 
