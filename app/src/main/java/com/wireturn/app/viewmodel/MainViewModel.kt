@@ -67,6 +67,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val subscriptions: StateFlow<List<com.wireturn.app.data.Subscription>> =
         subscriptionManager.subscriptions
 
+    val subscriptionsRefreshing: StateFlow<Set<String>> = subscriptionManager.refreshing
+
     fun addSubscription(name: String, url: String, intervalHours: Int = 12) =
         subscriptionManager.addSubscription(name, url, intervalHours)
 

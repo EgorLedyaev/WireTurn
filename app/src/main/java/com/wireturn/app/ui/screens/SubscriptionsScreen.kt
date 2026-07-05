@@ -43,6 +43,7 @@ import com.wireturn.app.ui.SectionItem
 @Composable
 fun SubscriptionsScreen(
     subscriptions: List<Subscription>,
+    refreshing: Set<String> = emptySet(),
     onBack: () -> Unit,
     onAdd: (String, String, Int) -> Unit,
     onEdit: (String, String, String, Int) -> Unit,
@@ -51,6 +52,8 @@ fun SubscriptionsScreen(
     onDelete: (String, Boolean) -> Unit,
     onToggle: (String, Boolean) -> Unit
 ) {
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     var showAdd by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<Subscription?>(null) }
     var deleteTarget by remember { mutableStateOf<Subscription?>(null) }
@@ -145,8 +148,25 @@ fun SubscriptionsScreen(
                                     )
                                 }
                                 Row {
-                                    TextButton(onClick = { onRefresh(sub.id) }) { Text(stringResource(R.string.subscriptions_refresh)) }
+                                    val isRefreshing = sub.id in refreshing
+                                    TextButton(onClick = { onRefresh(sub.id) }, enabled = !isRefreshing) {
+                                        if (isRefreshing) {
+                                            androidx.compose.material3.CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                strokeWidth = 2.dp
+                                            )
+                                        } else {
+                                            Text(stringResource(R.string.subscriptions_refresh))
+                                        }
+                                    }
                                     TextButton(onClick = { editTarget = sub }) { Text(stringResource(R.string.subscriptions_edit)) }
+                                    TextButton(onClick = {
+                                        clipboard.setText(androidx.compose.ui.text.AnnotatedString(sub.url))
+                                        android.widget.Toast.makeText(
+                                            context, context.getString(R.string.subscriptions_copied),
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    }) { Text(stringResource(R.string.subscriptions_copy)) }
                                     TextButton(onClick = { deleteTarget = sub }) { Text(stringResource(R.string.subscriptions_delete), color = MaterialTheme.colorScheme.error) }
                                 }
                             }

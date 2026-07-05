@@ -308,6 +308,8 @@
     <string name="subscriptions_edit">Изменить</string>
     <string name="subscriptions_edit_title">Изменить подписку</string>
     <string name="subscriptions_save">Сохранить</string>
+    <string name="subscriptions_copy">Копировать</string>
+    <string name="subscriptions_copied">URL скопирован</string>
     <string name="ok">OK</string>
     <string name="onboarding_invalid_title">Неверная ссылка</string>
     <string name="onboarding_invalid_msg">Эта ссылка подписки недействительна.</string>

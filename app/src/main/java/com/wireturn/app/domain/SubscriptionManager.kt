@@ -36,6 +36,11 @@ class SubscriptionManager(
     val subscriptions: StateFlow<List<Subscription>> = prefs.subscriptionsFlow
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
+    // Ids of subscriptions with a refresh in flight, so the UI can show a spinner
+    // and disable the refresh action instead of the old silent no-feedback refresh.
+    private val _refreshing = kotlinx.coroutines.flow.MutableStateFlow<Set<String>>(emptySet())
+    val refreshing: StateFlow<Set<String>> = _refreshing
+
     private val mutex = Mutex()
 
     enum class AddOutcome { ADDED, ALREADY_EXISTS, INVALID }
@@ -129,7 +134,10 @@ class SubscriptionManager(
         for (s in prefs.subscriptionsFlow.first()) if (s.isDue) refreshInternal(s.id)
     }
 
-    private suspend fun refreshInternal(id: String) = mutex.withLock {
+    private suspend fun refreshInternal(id: String) {
+        _refreshing.value = _refreshing.value + id
+        try {
+            mutex.withLock {
         val sub = prefs.subscriptionsFlow.first().find { it.id == id } ?: return@withLock
         val bytes = withContext(Dispatchers.IO) {
             HttpFetcher.fetchBytes(sub.url, sub.userAgent, sub.useProxy)
@@ -152,6 +160,10 @@ class SubscriptionManager(
             it.copy(lastStatus = "ok", lastUpdated = now, lastProfileCount = incoming.size)
         }
         AppLogsState.addLog("Subscription '${sub.name}': synced ${incoming.size} profile(s)")
+            }
+        } finally {
+            _refreshing.value = _refreshing.value - id
+        }
     }
 
     private fun parseBytes(bytes: ByteArray, defaultName: String): List<Profile> {

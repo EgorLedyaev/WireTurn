@@ -340,6 +340,8 @@
     <string name="subscriptions_edit">Edit</string>
     <string name="subscriptions_edit_title">Edit subscription</string>
     <string name="subscriptions_save">Save</string>
+    <string name="subscriptions_copy">Copy</string>
+    <string name="subscriptions_copied">URL copied</string>
     <string name="ok">OK</string>
     <string name="onboarding_invalid_title">Invalid link</string>
     <string name="onboarding_invalid_msg">This subscription link is invalid.</string>

@@ -26,8 +26,10 @@ class SubscriptionsActivity : ComponentActivity() {
 
             WireturnTheme(themeMode = themeMode, dynamicColor = dynamicTheme) {
                 val subs by viewModel.subscriptions.collectAsStateWithLifecycle()
+                val refreshing by viewModel.subscriptionsRefreshing.collectAsStateWithLifecycle()
                 SubscriptionsScreen(
                     subscriptions = subs,
+                    refreshing = refreshing,
                     onBack = { finish() },
                     onAdd = { name, url, interval -> viewModel.addSubscription(name, url, interval) },
                     onEdit = { id, name, url, interval -> viewModel.updateSubscription(id, name, url, interval) },
