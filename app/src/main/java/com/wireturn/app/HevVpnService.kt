@@ -280,6 +280,17 @@ misc:
     }
 
     override fun onRevoke() {
+        // Another VPN app took over the system TUN, so the OS revoked ours. Tearing
+        // down only the TUN here (as before) left CoreService/XrayService running, so
+        // the central "connected" button — which reflects CoreServiceState, not the
+        // TUN — stayed stuck on "connected". Stop the whole stack so the app honestly
+        // shows Disconnected. CoreService.stop() cascades: it stops XrayService (which
+        // in turn stops this VpnService) and the olcrtc/turnable/webdav binary, and
+        // drives CoreServiceState -> Idle. byUser=false keeps the user's VPN-mode and
+        // auto-launch preferences intact for the next manual connect; if auto-launch is
+        // on, its reachability check keeps us stopped while the other VPN carries traffic.
+        AppLogsState.addLog(getString(R.string.log_vpn_revoked))
+        CoreService.stop(applicationContext)
         stopVpn()
         super.onRevoke()
     }

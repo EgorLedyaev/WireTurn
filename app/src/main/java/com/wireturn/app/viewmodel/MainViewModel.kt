@@ -67,11 +67,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val subscriptions: StateFlow<List<com.wireturn.app.data.Subscription>> =
         subscriptionManager.subscriptions
 
+    val subscriptionsRefreshing: StateFlow<Set<String>> = subscriptionManager.refreshing
+
     fun addSubscription(name: String, url: String, intervalHours: Int = 12) =
         subscriptionManager.addSubscription(name, url, intervalHours)
 
     suspend fun addSubscriptionAwait(name: String, url: String, intervalHours: Int = 12) =
         subscriptionManager.addAndReport(name, url, intervalHours)
+
+    fun updateSubscription(id: String, name: String, url: String, intervalHours: Int = 12) =
+        subscriptionManager.updateSubscription(id, name, url, intervalHours)
 
     fun removeSubscription(id: String, deleteProfiles: Boolean) =
         subscriptionManager.removeSubscription(id, deleteProfiles)

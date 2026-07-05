@@ -43,14 +43,19 @@ import com.wireturn.app.ui.SectionItem
 @Composable
 fun SubscriptionsScreen(
     subscriptions: List<Subscription>,
+    refreshing: Set<String> = emptySet(),
     onBack: () -> Unit,
     onAdd: (String, String, Int) -> Unit,
+    onEdit: (String, String, String, Int) -> Unit,
     onRefresh: (String) -> Unit,
     onRefreshAll: () -> Unit,
     onDelete: (String, Boolean) -> Unit,
     onToggle: (String, Boolean) -> Unit
 ) {
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     var showAdd by remember { mutableStateOf(false) }
+    var editTarget by remember { mutableStateOf<Subscription?>(null) }
     var deleteTarget by remember { mutableStateOf<Subscription?>(null) }
     val scroll = rememberScrollState()
 
@@ -106,7 +111,7 @@ fun SubscriptionsScreen(
                             i == subscriptions.lastIndex -> ItemPosition.Bottom
                             else -> ItemPosition.Middle
                         }
-                        SectionItem(position = pos) {
+                        SectionItem(position = pos, onClick = { editTarget = sub }) {
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                                     Column(modifier = Modifier.weight(1f)) {
@@ -143,7 +148,25 @@ fun SubscriptionsScreen(
                                     )
                                 }
                                 Row {
-                                    TextButton(onClick = { onRefresh(sub.id) }) { Text(stringResource(R.string.subscriptions_refresh)) }
+                                    val isRefreshing = sub.id in refreshing
+                                    TextButton(onClick = { onRefresh(sub.id) }, enabled = !isRefreshing) {
+                                        if (isRefreshing) {
+                                            androidx.compose.material3.CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                strokeWidth = 2.dp
+                                            )
+                                        } else {
+                                            Text(stringResource(R.string.subscriptions_refresh))
+                                        }
+                                    }
+                                    TextButton(onClick = { editTarget = sub }) { Text(stringResource(R.string.subscriptions_edit)) }
+                                    TextButton(onClick = {
+                                        clipboard.setText(androidx.compose.ui.text.AnnotatedString(sub.url))
+                                        android.widget.Toast.makeText(
+                                            context, context.getString(R.string.subscriptions_copied),
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    }) { Text(stringResource(R.string.subscriptions_copy)) }
                                     TextButton(onClick = { deleteTarget = sub }) { Text(stringResource(R.string.subscriptions_delete), color = MaterialTheme.colorScheme.error) }
                                 }
                             }
@@ -157,9 +180,23 @@ fun SubscriptionsScreen(
     }
 
     if (showAdd) {
-        AddSubscriptionDialog(
+        SubscriptionEditorDialog(
+            title = stringResource(R.string.subscriptions_add),
+            confirmLabel = stringResource(R.string.subscriptions_add_confirm),
             onDismiss = { showAdd = false },
             onConfirm = { n, u, iv -> onAdd(n, u, iv); showAdd = false }
+        )
+    }
+
+    editTarget?.let { tgt ->
+        SubscriptionEditorDialog(
+            title = stringResource(R.string.subscriptions_edit_title),
+            confirmLabel = stringResource(R.string.subscriptions_save),
+            initialName = tgt.name,
+            initialUrl = tgt.url,
+            initialInterval = tgt.intervalHours,
+            onDismiss = { editTarget = null },
+            onConfirm = { n, u, iv -> onEdit(tgt.id, n, u, iv); editTarget = null }
         )
     }
 
@@ -182,13 +219,21 @@ fun SubscriptionsScreen(
 }
 
 @Composable
-private fun AddSubscriptionDialog(onDismiss: () -> Unit, onConfirm: (String, String, Int) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var url by remember { mutableStateOf("") }
-    var interval by remember { mutableStateOf("12") }
+private fun SubscriptionEditorDialog(
+    title: String,
+    confirmLabel: String,
+    initialName: String = "",
+    initialUrl: String = "",
+    initialInterval: Int = 12,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String, Int) -> Unit
+) {
+    var name by remember { mutableStateOf(initialName) }
+    var url by remember { mutableStateOf(initialUrl) }
+    var interval by remember { mutableStateOf(initialInterval.toString()) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.subscriptions_add)) },
+        title = { Text(title) },
         text = {
             Column {
                 OutlinedTextField(
@@ -215,7 +260,7 @@ private fun AddSubscriptionDialog(onDismiss: () -> Unit, onConfirm: (String, Str
             TextButton(
                 enabled = url.isNotBlank(),
                 onClick = { onConfirm(name.trim(), url.trim(), interval.toIntOrNull() ?: 12) }
-            ) { Text(stringResource(R.string.subscriptions_add_confirm)) }
+            ) { Text(confirmLabel) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )

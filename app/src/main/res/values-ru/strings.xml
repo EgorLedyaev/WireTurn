@@ -240,6 +240,8 @@
     <string name="log_core_quick_exit">* [Core] Быстрый выход (%1$dмс) — проверьте параметры подключения и настройки</string>
     <string name="log_core_watchdog_limit">* [Core] WATCHDOG: превышен лимит попыток (%1$d), остановка</string>
     <string name="log_core_watchdog_restart">* [Core] WATCHDOG: перезапуск через %1$dмс (попытка %2$d/%3$d)</string>
+    <string name="log_core_carrier_active">* [Core] olcrtc канал: %1$s (%2$d/%3$d)</string>
+    <string name="log_core_carrier_switch">* [Core] olcrtc failover → %1$s (%2$d/%3$d)</string>
     <string name="log_core_network_change">* [Core] СМЕНА СЕТИ — ПЕРЕЗАПУСК</string>
     <string name="log_core_connection_timeout">* [Core] ТАЙМАУТ ПОДКЛЮЧЕНИЯ (2м) — ПЕРЕЗАПУСК</string>
     <string name="log_core_no_network_waiting">* [Core] НЕТ СЕТИ — ОЖИДАНИЕ</string>
@@ -277,6 +279,7 @@
     <string name="log_vpn_stopped">* [VPN] TUN остановлен (hev-socks5-tunnel)</string>
     <string name="log_vpn_stop_error">* [VPN] Ошибка при остановке: %1$s (hev-socks5-tunnel)</string>
     <string name="log_vpn_restarting_config">* [VPN] Перезапуск из-за изменения настроек или восстановления</string>
+    <string name="log_vpn_revoked">* [VPN] Отключён другим VPN-приложением — останавливаемся</string>
 
     <string name="log_dual_route_direct_established">* [DualRoute] Прямое соединение установлено, подавление туннеля</string>
     <string name="log_dual_route_direct_lost">* [DualRoute] Прямое соединение потеряно, разблокировка туннеля</string>
@@ -304,6 +307,11 @@
     <string name="subscriptions_url_hint">URL подписки</string>
     <string name="subscriptions_interval_hint">Интервал обновления (часы)</string>
     <string name="subscriptions_add_confirm">Добавить</string>
+    <string name="subscriptions_edit">Изменить</string>
+    <string name="subscriptions_edit_title">Изменить подписку</string>
+    <string name="subscriptions_save">Сохранить</string>
+    <string name="subscriptions_copy">Копировать</string>
+    <string name="subscriptions_copied">URL скопирован</string>
     <string name="ok">OK</string>
     <string name="onboarding_invalid_title">Неверная ссылка</string>
     <string name="onboarding_invalid_msg">Эта ссылка подписки недействительна.</string>

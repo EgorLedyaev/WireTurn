@@ -268,7 +268,11 @@ data class OlcrtcConfig(
     @SerializedName("video_qr_recovery") val videoQrRecovery: String = "low",
     @SerializedName("video_qr_size") val videoQrSize: Int = 0,
     @SerializedName("video_tile_module") val videoTileModule: Int = 4,
-    @SerializedName("video_tile_rs") val videoTileRs: Int = 20
+    @SerializedName("video_tile_rs") val videoTileRs: Int = 20,
+    // Failover backup carriers (same exit, redundant jitsi hosts). The client
+    // tries this (primary) config first and auto-rotates to these on repeated
+    // failure. Alternates are flat (they carry no further alternates).
+    @SerializedName("alternates") val alternates: List<OlcrtcConfig> = emptyList()
 ) {
     val providerDisplayName: String
         get() = when (provider) {
@@ -794,6 +798,8 @@ data class Profile(
     // --- STABLE INPUT FIELDS (Used for profile generation and deep linking) ---
     @SerializedName("turnableUrl") private val turnableUrl: String? = null
     @SerializedName("olcrtcUrl") private val olcrtcUrl: String? = null
+    // Failover backup olcrtc URIs the panel attaches to the primary profile.
+    @SerializedName("olcrtcAlternates") private val olcrtcAlternates: List<String>? = null
     @SerializedName("webdavUrl") private val webdavUrl: String? = null
     // Input-only: server-supplied stable id; promoted into remoteKey in sanitize().
     @SerializedName("uid") private val remoteUid: String? = null
@@ -840,7 +846,13 @@ data class Profile(
         if (turnableUrl?.isNotBlank() == true) {
             TurnableConfig.parse(turnableUrl)?.let { currentKc = KernelConfig.Turnable(it) }
         } else if (olcrtcUrl?.isNotBlank() == true) {
-            OlcrtcConfig.parse(olcrtcUrl)?.let { currentKc = KernelConfig.Olcrtc(it) }
+            OlcrtcConfig.parse(olcrtcUrl)?.let { primary ->
+                val alts = olcrtcAlternates
+                    ?.mapNotNull { OlcrtcConfig.parse(it)?.sanitize() }
+                    ?.map { it.copy(alternates = emptyList()) }
+                    ?: emptyList()
+                currentKc = KernelConfig.Olcrtc(primary.copy(alternates = alts))
+            }
         } else if (webdavUrl?.isNotBlank() == true) {
             WebdavConfig.parse(webdavUrl)?.let { currentKc = KernelConfig.Webdav(it) }
         }
