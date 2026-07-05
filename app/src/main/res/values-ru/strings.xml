@@ -240,6 +240,8 @@
     <string name="log_core_quick_exit">* [Core] Быстрый выход (%1$dмс) — проверьте параметры подключения и настройки</string>
     <string name="log_core_watchdog_limit">* [Core] WATCHDOG: превышен лимит попыток (%1$d), остановка</string>
     <string name="log_core_watchdog_restart">* [Core] WATCHDOG: перезапуск через %1$dмс (попытка %2$d/%3$d)</string>
+    <string name="log_core_carrier_active">* [Core] olcrtc канал: %1$s (%2$d/%3$d)</string>
+    <string name="log_core_carrier_switch">* [Core] olcrtc failover → %1$s (%2$d/%3$d)</string>
     <string name="log_core_network_change">* [Core] СМЕНА СЕТИ — ПЕРЕЗАПУСК</string>
     <string name="log_core_connection_timeout">* [Core] ТАЙМАУТ ПОДКЛЮЧЕНИЯ (2м) — ПЕРЕЗАПУСК</string>
     <string name="log_core_no_network_waiting">* [Core] НЕТ СЕТИ — ОЖИДАНИЕ</string>

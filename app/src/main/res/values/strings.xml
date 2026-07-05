@@ -272,6 +272,8 @@
     <string name="log_core_quick_exit">* [Core] Quick exit (%1$dms) — check connection details and settings</string>
     <string name="log_core_watchdog_limit">* [Core] WATCHDOG: attempt limit exceeded (%1$d), stopping</string>
     <string name="log_core_watchdog_restart">* [Core] WATCHDOG: restarting in %1$dms (attempt %2$d/%3$d)</string>
+    <string name="log_core_carrier_active">* [Core] olcrtc carrier: %1$s (%2$d/%3$d)</string>
+    <string name="log_core_carrier_switch">* [Core] olcrtc failover → %1$s (%2$d/%3$d)</string>
     <string name="log_core_network_change">* [Core] NETWORK CHANGE — RESTARTING</string>
     <string name="log_core_connection_timeout">* [Core] CONNECTION TIMEOUT (2m) — RESTARTING</string>
     <string name="log_core_no_network_waiting">* [Core] NO NETWORK — WAITING</string>

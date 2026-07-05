@@ -58,6 +58,12 @@ class CoreService : Service() {
     @Volatile private var networkInitialized = false
     private var lastNetworkHandle: Long = -1
     private var restartCount = 0
+    // olcrtc carrier auto-failover state (primary + alternates). Reset on each
+    // fresh supervisor start so every new connection tries the primary first.
+    private var carrierIndex = 0
+    private var carrierAttempts = 0
+    private var carrierCycleFailures = 0
+    @Volatile private var lastRunReachedConnected = false
 
     private lateinit var serviceScope: CoroutineScope
     private var coreJob: Job? = null
@@ -197,8 +203,38 @@ class CoreService : Service() {
         }
     }
 
+    // --- olcrtc carrier auto-failover helpers ---
+    // The active olcrtc profile's carriers, primary first then its alternates.
+    // Non-olcrtc configs return empty (single-run path, no failover).
+    private fun olcrtcCarriers(cfg: ClientConfig): List<OlcrtcConfig> {
+        val k = cfg.kernelConfig
+        if (k !is KernelConfig.Olcrtc) return emptyList()
+        return listOf(k.config) + k.config.alternates
+    }
+
+    // A ClientConfig whose active olcrtc carrier is carriers[index] (0 = primary/
+    // base). Alternates ride along so later rotations still see the full list.
+    private fun cfgForCarrier(cfg: ClientConfig, index: Int): ClientConfig {
+        val k = cfg.kernelConfig as? KernelConfig.Olcrtc ?: return cfg
+        val carriers = listOf(k.config) + k.config.alternates
+        if (index <= 0 || index >= carriers.size) return cfg
+        val active = carriers[index].copy(alternates = k.config.alternates)
+        return cfg.copy(kernelConfig = KernelConfig.Olcrtc(active))
+    }
+
+    // Carrier label for logs: the jitsi host, tagging index 0 as the primary.
+    private fun carrierLabel(cfg: ClientConfig, index: Int): String {
+        val carriers = olcrtcCarriers(cfg)
+        if (index !in carriers.indices) return "?"
+        val host = carriers[index].id.substringAfter("://").substringBefore("/").substringBefore(":")
+        return if (index == 0) "$host (primary)" else host
+    }
+
     private suspend fun mainSupervisor() = coroutineScope {
         val prefs = AppPreferences(applicationContext)
+        carrierIndex = 0
+        carrierAttempts = 0
+        carrierCycleFailures = 0
 
         // Реактивное управление состоянием паузы (Suppressed)
         launch {
@@ -319,7 +355,17 @@ class CoreService : Service() {
                 continue
             }
 
-            val cfg = currentRunningCfg.get() ?: break
+            val baseCfg = currentRunningCfg.get() ?: break
+            // olcrtc multi-carrier: pick the active carrier for this attempt. Single
+            // carrier (or non-olcrtc) uses baseCfg directly and the standard path.
+            val carriers = olcrtcCarriers(baseCfg)
+            if (carriers.size > 1 && carrierIndex !in carriers.indices) carrierIndex = 0
+            val cfg = if (carriers.size > 1) cfgForCarrier(baseCfg, carrierIndex) else baseCfg
+            if (carriers.size > 1) {
+                AppLogsState.addLog(getString(R.string.log_core_carrier_active,
+                    carrierLabel(baseCfg, carrierIndex), carrierIndex + 1, carriers.size))
+            }
+            lastRunReachedConnected = false
             val startTime = System.currentTimeMillis()
             val startupSuccessful = runBinary(cfg)
             val duration = System.currentTimeMillis() - startTime
@@ -335,6 +381,46 @@ class CoreService : Service() {
 
             // В ЛЮБОМ СЛУЧАЕ проверяем сеть, если процесс упал не по воле пользователя
             if (isNetworkMissingAndHandled()) {
+                continue
+            }
+
+            // olcrtc auto-failover across carriers (primary + alternates). A run
+            // that reached Connected and lasted CARRIER_STABLE_MS is treated as a
+            // healthy carrier and we drop back to the primary preference; anything
+            // shorter is a failed attempt that, after CARRIER_TRIES, rotates to the
+            // next carrier. Only after MAX_CARRIER_CYCLES full passes with no
+            // healthy carrier do we surface a failure. Single-carrier profiles skip
+            // this and use the standard supervisor policy below.
+            if (carriers.size > 1) {
+                val healthy = lastRunReachedConnected && duration >= CARRIER_STABLE_MS
+                if (healthy) {
+                    carrierAttempts = 0
+                    carrierCycleFailures = 0
+                    carrierIndex = 0 // prefer the primary again after a healthy session ends
+                } else {
+                    carrierAttempts++
+                    if (carrierAttempts >= CARRIER_TRIES) {
+                        carrierAttempts = 0
+                        carrierIndex = (carrierIndex + 1) % carriers.size
+                        if (carrierIndex == 0) carrierCycleFailures++
+                        AppLogsState.addLog(getString(R.string.log_core_carrier_switch,
+                            carrierLabel(baseCfg, carrierIndex), carrierIndex + 1, carriers.size))
+                    }
+                    if (carrierCycleFailures >= MAX_CARRIER_CYCLES) {
+                        AppLogsState.addLog(getString(R.string.log_core_watchdog_limit, MAX_RESTARTS))
+                        val em = getString(R.string.core_failed)
+                        CoreServiceState.emitFailed(em)
+                        if (!AppLifecycleState.isAppInForeground.value) {
+                            NotificationHelper.notifyError(this@CoreService, em)
+                        }
+                        withContext(Dispatchers.Main) { stopSelf() }
+                        break
+                    }
+                }
+                CoreServiceState.setStatus(CoreStatus.Connecting)
+                CoreServiceState.setRestarting(true)
+                val cd = minOf(1500L * (carrierAttempts + 1), 15_000L) + Random.nextLong(0, 500)
+                delay(cd.milliseconds)
                 continue
             }
 
@@ -490,6 +576,7 @@ class CoreService : Service() {
                             CoreServiceState.setStatusText(null)
                             CoreServiceState.setStatus(CoreStatus.Connected)
                             updateNotification(getString(R.string.core_active))
+                            lastRunReachedConnected = true
                             break
                         }
                     }
@@ -1416,6 +1503,10 @@ class CoreService : Service() {
         const val ACTION_STOP = "ACTION_STOP"
         const val ACTION_STOP_BY_USER = "ACTION_STOP_BY_USER"
         const val MAX_RESTARTS = 10
+        // olcrtc carrier auto-failover tuning.
+        const val CARRIER_TRIES = 2            // attempts on a carrier before rotating
+        const val MAX_CARRIER_CYCLES = 3       // full failover passes before surfacing failure
+        const val CARRIER_STABLE_MS = 45_000L  // a run at least this long = a healthy carrier
 
         // olcrtc carriers whose old Jicofo (stock docker-jitsi-meet) only invites
         // participants advertising legacy jitsi-meet caps. Sets OLCRTC_LEGACY_CAPS.
